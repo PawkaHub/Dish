@@ -138,3 +138,9 @@ body {
 .pane {
 	background-color: transparent;
 }
+
+.modal-wrapper {
+	.pane {
+		background-color: $secondTint;
+	}
+}

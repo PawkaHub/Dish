@@ -7755,3 +7755,6 @@ body {
 
 .pane {
   background-color: transparent; }
+
+.modal-wrapper .pane {
+  background-color: #f5f5f5; }

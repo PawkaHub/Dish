@@ -1,68 +1,44 @@
 'Use Strict';
-angular.module('App', ['ionic', 'ngStorage', 'ngCordova', 'firebase', 'ngMessages', 'templates'])
-  .config(function($stateProvider, $urlRouterProvider) {})
-  // Changue this for your Firebase App URL.
-  .constant('FURL', 'https://dishapp.firebaseio.com/')
-  .run(function($ionicPlatform) {
-    $ionicPlatform.ready(function() {
-      // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-      // for form inputs)
-      if (window.cordova && window.cordova.plugins.Keyboard) {
-        cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      }
-      if (window.StatusBar) {
-        StatusBar.styleDefault();
-      }
-    });
-  });
-angular.module('App').controller('AppCtrl', function($scope, $log, $ionicSlideBoxDelegate) {
-	$scope.toAppSlide = function(index) {
-		$ionicSlideBoxDelegate.$getByHandle('appSlider').slide(index);
-	};
-});
-'Use Strict';
-angular.module('App').controller('loginController', function ($scope, $state,$cordovaOauth, $localStorage, $location,$http,$ionicPopup, $firebaseObject, Auth, FURL, Utils) {
+angular.module('App').controller('LoginCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
   var ref = new Firebase(FURL);
-  var userkey = "";
-  $scope.signIn = function (user) {
-    console.log("Enviado");
-    if(angular.isDefined(user)){
-    Utils.show();
-    Auth.login(user)
-      .then(function(authData) {
-      //console.log("id del usuario:" + JSON.stringify(authData));
+  var userkey = '';
+  $scope.signIn = function(user) {
+    console.log('Logging In');
+    if (angular.isDefined(user)) {
+      Utils.show();
+      Auth.login(user)
+        .then(function(authData) {
+          //console.log('user id:' + JSON.stringify(authData));
 
-      ref.child('profile').orderByChild("id").equalTo(authData.uid).on("child_added", function(snapshot) {
-        console.log(snapshot.key());
-        userkey = snapshot.key();
-        var obj = $firebaseObject(ref.child('profile').child(userkey));
+          ref.child('profile').orderByChild('id').equalTo(authData.uid).on('child_added', function(snapshot) {
+            console.log(snapshot.key());
+            userkey = snapshot.key();
+            var obj = $firebaseObject(ref.child('profile').child(userkey));
 
-        obj.$loaded()
-          .then(function(data) {
-            //console.log(data === obj); // true
-            //console.log(obj.email);
-            $localStorage.email = obj.email;
-            $localStorage.userkey = userkey;
+            obj.$loaded()
+              .then(function(data) {
+                //console.log(data === obj); // true
+                //console.log(obj.email);
+                $localStorage.email = obj.email;
+                $localStorage.userkey = userkey;
 
-              Utils.hide();
-              $state.go('home');
-              console.log("Starter page","Home");
-
-          })
-          .catch(function(error) {
-            console.error("Error:", error);
+                Utils.hide();
+                $scope.closeModal('login');
+                console.log('User logged in');
+              })
+              .catch(function(error) {
+                console.error('Error:', error);
+              });
           });
-      });
 
-      }, function(err) {
-        Utils.hide();
-         Utils.errMessage(err);
-      });
+        }, function(err) {
+          Utils.hide();
+          Utils.errMessage(err);
+        });
     }
   };
 
 });
-
 'Use Strict';
 angular.module('App').controller('forgotController', function ($scope, $state,$cordovaOauth, $localStorage, $location,$http,$ionicPopup, $firebaseObject, Auth, FURL, Utils) {
   var ref = new Firebase(FURL);
@@ -81,17 +57,15 @@ angular.module('App').controller('forgotController', function ($scope, $state,$c
 );
 
 'Use Strict';
-angular.module('App').controller('homeController', function ($scope, $state,$cordovaOauth, $localStorage, $location,$http,$ionicPopup, $firebaseObject, Auth, FURL, Utils) {
-  var ref = new Firebase(FURL);
+angular.module('App').controller('HomeCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $log, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
+	var ref = new Firebase(FURL);
 
-  $scope.logOut = function () {
-      Auth.logout();
-      $location.path("/login");
-  }
-
-}
-);
-
+	$scope.logout = function() {
+		$log.log('Logout');
+		Auth.logout();
+		$scope.showModal('login');
+	};
+});
 'Use Strict';
 angular.module('App').controller('registerController', function ($scope, $state,$cordovaOauth, $localStorage, $location,$http,$ionicPopup, $firebaseObject, Auth, FURL, Utils) {
 
@@ -114,6 +88,23 @@ angular.module('App').controller('registerController', function ($scope, $state,
 }
 );
 
+'Use Strict';
+angular.module('App').controller('InfoCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $log, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
+	var ref = new Firebase(FURL);
+
+	$scope.info = function() {
+		$log.log('Info!');
+	};
+});
+'Use Strict';
+angular.module('App').controller('OptionsCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
+	var ref = new Firebase(FURL);
+
+	$scope.option = function() {
+		$log.log('Option!');
+	};
+
+});
 angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArray, $firebaseObject, Utils) {
 
   var ref = new Firebase(FURL);
@@ -792,29 +783,9 @@ l?h.setClass(e,"ng-active","ng-inactive"):h.setClass(e,"ng-inactive","ng-active"
 k(e[0],a))?a.next=b.next:c.head=b.next;delete l[d];c.reRender()}}]}}]).directive("ngMessagesInclude",["$templateRequest","$document","$compile",function(h,q,m){return{restrict:"AE",require:"^^ngMessages",link:function(e,a,g){var k=g.ngMessagesInclude||g.src;h(k).then(function(c){m(c)(e,function(c){a.after(c);c=z(q[0].createComment(" ngMessagesInclude: "+k+" "));a.after(c);a.remove()})})}}}]).directive("ngMessage",v("AE")).directive("ngMessageExp",v("A"))})(window,window.angular);
 //# sourceMappingURL=angular-messages.min.js.map
 
-'Use Strict';
-angular.module('App', ['ionic', 'ngStorage', 'ngCordova', 'firebase', 'ngMessages', 'templates'])
-  .config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider) {}])
-  // Changue this for your Firebase App URL.
-  .constant('FURL', 'https://dishapp.firebaseio.com/')
-  .run(['$ionicPlatform', function($ionicPlatform) {
-    $ionicPlatform.ready(function() {
-      // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-      // for form inputs)
-      if (window.cordova && window.cordova.plugins.Keyboard) {
-        cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      }
-      if (window.StatusBar) {
-        StatusBar.styleDefault();
-      }
-    });
-  }]);
-angular.module('App').controller('AppCtrl', ['$scope', '$log', '$ionicSlideBoxDelegate', function($scope, $log, $ionicSlideBoxDelegate) {
-	$scope.toAppSlide = function(index) {
-		$ionicSlideBoxDelegate.$getByHandle('appSlider').slide(index);
-	};
-}]);
 angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("forgot/forgot.html","<ion-view view-title=\"Forgot Password\">\n  <ion-content class=\"padding-top\">\n    <div class=\"text-center padding\">\n      <i class=\"icon ion-ios-infinite larger positive\"></i>\n    </div>\n    <form name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetpassword(user)\">\n   <div class=\"list\">\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error\' : forgotForm.txtemail.$invalid && forgotForm.$submitted }\">\n        <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" ng-model=\"user.email\" placeholder=\"Email\" type=\"email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"forgotForm.txtemail.$error\" ng-if=\"forgotForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">This field is required</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n      <div class=\"padding-top\">\n      <input type=\"submit\" value=\"Reset my password\" class=\"button button-block button-positive\"/>\n  </form>\n    </div>\n  </ion-content>\n</ion-view>\n");
-$templateCache.put("home/home.html","<ion-view view-title=\"Home\" hide-back-button=\"true\">\n  <ion-content class=\"padding-top\">\n    <h1>Hello There!</h1>\n    <button ng-click=\"logOut()\" class=\"button button-clear button-positive\">Logout</button>\n  </ion-content>\n</ion-view>\n");
-$templateCache.put("login/login.html","<ion-modal-view>\n  <ion-content class=\"padding-top\">\n    <form novalidate name=\"loginForm\" ng-submit=\"loginForm.$valid && signIn(user)\">\n    <div class=\"list\">\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error\' : loginForm.txtemail.$invalid && loginForm.$submitted }\">\n        <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" type=\"email\" ng-model=\"user.email\" placeholder=\"Email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <!-- Edit this messages if you want -->\n      <div class=\"form-errors\" ng-messages=\"loginForm.txtemail.$error\" ng-if=\"loginForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">This field is required.</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error-lr\' : loginForm.txtPassword.$invalid && loginForm.$submitted }\">\n        <span class=\"input-label\">Password</span>\n        <input name=\"txtPassword\" type=\"password\" ng-model=\"user.password\" placeholder=\"Password\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <!-- Edit this messages if you want -->\n      <div class=\"form-errors\" ng-messages=\"loginForm.txtPassword.$error\" ng-if=\"loginForm.$submitted\">\n      <div class=\"form-error\" ng-message=\"required\">This field is required.</div>\n      <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n      <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n    </div>\n    <div class=\"padding-top\">\n      <input type=\"submit\" class=\"button button-block button-positive\" value=\"Sign-In\">\n      <p class=\"text-center padding-top\">\n          <a href=\"#/forgot\" class=\"button button-clear button-positive\">Forgot password</a><a href=\"#/register\" class=\"button button-clear button-positive\">Register</a>\n    </div>\n    </form>\n  </ion-content>\n<ion-modal-view>");
+$templateCache.put("home/home.html","<ion-content class=\"home\" ng-controller=\"HomeCtrl\">\n  <h1>Hello There!</h1>\n  <button ng-click=\"logout()\" class=\"button button-clear button-positive\">Logout</button>\n</ion-content>\n");
+$templateCache.put("info/info.html","<ion-content class=\"info\" ng-controller=\"InfoCtrl\">\n  <h1>Info!</h1>\n  <button ng-click=\"info()\" class=\"button button-clear button-positive\">Info</button>\n</ion-content>\n");
+$templateCache.put("login/login.html","<ion-modal-view ng-controller=\"LoginCtrl\">\n  <ion-content scroll=\"false\">\n    <form novalidate name=\"loginForm\" ng-submit=\"loginForm.$valid && signIn(user)\">\n    <div class=\"list\">\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error\' : loginForm.txtemail.$invalid && loginForm.$submitted }\">\n        <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" type=\"email\" ng-model=\"user.email\" placeholder=\"Email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <!-- Edit this messages if you want -->\n      <div class=\"form-errors\" ng-messages=\"loginForm.txtemail.$error\" ng-if=\"loginForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">This field is required.</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error-lr\' : loginForm.txtPassword.$invalid && loginForm.$submitted }\">\n        <span class=\"input-label\">Password</span>\n        <input name=\"txtPassword\" type=\"password\" ng-model=\"user.password\" placeholder=\"Password\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <!-- Edit this messages if you want -->\n      <div class=\"form-errors\" ng-messages=\"loginForm.txtPassword.$error\" ng-if=\"loginForm.$submitted\">\n      <div class=\"form-error\" ng-message=\"required\">This field is required.</div>\n      <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n      <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n    </div>\n    <div class=\"padding-top\">\n      <input type=\"submit\" class=\"button button-block button-positive\" value=\"Sign-In\">\n      <p class=\"text-center padding-top\">\n          <a href=\"#/forgot\" class=\"button button-clear button-positive\">Forgot password</a><a href=\"#/register\" class=\"button button-clear button-positive\">Register</a>\n    </div>\n    </form>\n  </ion-content>\n</ion-modal-view>");
+$templateCache.put("options/options.html","<ion-content class=\"home\" ng-controller=\"OptionsCtrl\">\n  <h1>Options!</h1>\n  <button ng-click=\"option()\" class=\"button button-clear button-positive\">Option</button>\n</ion-content>\n");
 $templateCache.put("register/register.html","<ion-view view-title=\"Register\">\n  <ion-content class=\"padding-top\">\n    <div class=\"text-center padding-top\">\n      <i class=\"icon ion-android-person-add larger positive\"></i>\n    </div>\n    <form name=\"registerForm\" novalidate ng-submit=\"registerForm.$valid && register(user)\"\n    ng-class=\"{ \'has-error\' : registerForm.txtemail.$invalid && registerForm.$submitted }\">\n    <div class=\"list\">\n        <label class=\"item item-input item-floating-label\">\n          <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" type=\"email\" ng-model=\"user.email\" placeholder=\"Email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"registerForm.txtemail.$error\" ng-if=\"registerForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">Debes ingresar algo como nombre@email.com.</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">Ops, parece ser muy grande el correo.</div>\n      </div>\n        <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error-lr\' : registerForm.txtpassword.$invalid  && registerForm.$submitted}\">\n        <span class=\"input-label\">Password</span>\n        <input name=\"txtpassword\" type=\"password\" ng-model=\"user.password\" placeholder=\"Password\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"25\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"registerForm.txtpassword.$error\" ng-if=\"registerForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">Debes ingresar una Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">Ops, parece ser muy corta las Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">Ops, parece ser muy grande las Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"pattern\">Debe ingresar solo caracteres letras y numeros.</div>\n      </div>\n    </div>\n    <div class=\"padding-top\">\n      <input type=\"submit\" value=\"Register\" class=\"button button-block button-positive\"/>\n    </div>\n  </form>\n  </ion-content>\n</ion-view>\n");}]);

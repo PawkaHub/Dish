@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+		<meta name="format-detection" content="telephone=no">
+		<title>Dish</title>
+
+
+		<link rel="stylesheet" href="dist_css/styles.css">
+
+		<!-- ionic/angularjs js -->
+		<script src="lib/ionic/js/ionic.bundle.js"></script>
+
+		<!-- cordova script (this will be a 404 during development) -->
+		<script src="cordova.js"></script>
+
+		<!-- your app's js -->
+		<script src="dist_js/app.js"></script>
+
+	</head>
+
+	<body ng-app="App" ng-controller="AppCtrl">
+		<ion-slide-box class="appSlider" delegate-handle="appSlider" show-pager="false" active-slide="1">
+      <ion-slide class="appSlide left">
+        <ion-header-bar align-title="center">
+          <h1 class="title">Left</h1>
+          <div class="buttons">
+            <button class="button button-icon button-clear ion-ios-home" menu-toggle="right" ng-click="toAppSlide(1)">
+            </button>
+          </div>
+        </ion-header-bar>
+        <ng-include src="&apos;register/register.html&apos;"></ng-include>
+      </ion-slide>
+      <ion-slide class="appSlide center">
+        <ion-header-bar align-title="center">
+          <div class="buttons">
+            <button class="button button-icon button-clear ion-navicon" ng-click="toAppSlide(0)">
+              <div class="unread" ng-if="unread"></div>
+            </button>
+          </div>
+          <h1 class="title icon"></h1>
+          <div class="buttons">
+            <button class="button button-icon button-clear ion-ribbon-b" ng-click="toAppSlide(2)">
+            </button>
+          </div>
+        </ion-header-bar>
+        <ng-include src="&apos;home/home.html&apos;"></ng-include></ion-slide>
+      <ion-slide class="appSlide right">
+        <ion-header-bar align-title="center">
+          <div class="buttons">
+            <button class="button button-icon button-clear ion-ios-home" ng-click="toAppSlide(1)">
+            </button>
+          </div>
+          <h1 class="title">Right</h1>
+        </ion-header-bar>
+        <ng-include src="&apos;login/login.html&apos;"></ng-include>
+      </ion-slide>
+    </ion-slide-box>
+	</body>
+</html>

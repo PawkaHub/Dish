@@ -144,3 +144,70 @@ body {
 		background-color: $secondTint;
 	}
 }
+
+// Signup
+.signup {
+	@include full;
+	background-color: $brandTint;
+	@include cover('../img/login.jpg');
+	//@include dots;
+	.logo {
+		width: 150px;
+		height: 150px;
+		top: 50%;
+		margin-top: -260px;
+	}
+}
+.loginSlider {
+	@include full;
+	z-index: 1;
+}
+.logo {
+	width: 150px;
+	height: 150px;
+	@include vertCenter;
+	top: -10px;
+	@include contain('../img/logo.png');
+	z-index: 1;
+}
+.signupForm, .loginForm, .forgotForm {
+	@include vertCenter;
+	max-width: 320px;
+}
+.signupForm {
+	margin-top: -118px;
+}
+.loginForm {
+	margin-top: -90px;
+}
+.forgotForm {
+	margin-top: -72px;
+}
+.forgotForm {
+	.list {
+		margin-bottom: 0;
+	}
+}
+.forgot {
+	background-color: $brandTint;
+	.logo {
+		width: 150px;
+		height: 150px;
+		margin-top: -260px;
+	}
+	.bar-header {
+		background-color: transparent;
+		background-image: none;
+		.button {
+			color: $light;
+			padding-right: 10px;
+		}
+	}
+}
+.forgotLink {
+	position: absolute;
+	bottom: 0;
+	right: 10px;
+	z-index: 1;
+	font-size: smaller;
+}

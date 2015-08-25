@@ -1,4 +1,5 @@
 <ion-content class="home" ng-controller="HomeCtrl">
-  <h1>Hello There!</h1>
+  <h1>Hello {{currentUser.profile.username}}!</h1>
+  {{currentUser.profile}}
   <button ng-click="logout()" class="button button-clear button-positive">Logout</button>
 </ion-content>

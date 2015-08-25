@@ -7758,3 +7758,83 @@ body {
 
 .modal-wrapper .pane {
   background-color: #f5f5f5; }
+
+.signup {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: red;
+  background-image: url('../img/login.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: 50% 50%; }
+  .signup .logo {
+    width: 150px;
+    height: 150px;
+    top: 50%;
+    margin-top: -260px; }
+
+.loginSlider {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1; }
+
+.logo {
+  width: 150px;
+  height: 150px;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  margin: 0 auto 0 auto;
+  top: -10px;
+  background-image: url('../img/logo.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  z-index: 1; }
+
+.signupForm, .loginForm, .forgotForm {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  margin: 0 auto 0 auto;
+  max-width: 320px; }
+
+.signupForm {
+  margin-top: -118px; }
+
+.loginForm {
+  margin-top: -90px; }
+
+.forgotForm {
+  margin-top: -72px; }
+
+.forgotForm .list {
+  margin-bottom: 0; }
+
+.forgot {
+  background-color: red; }
+  .forgot .logo {
+    width: 150px;
+    height: 150px;
+    margin-top: -260px; }
+  .forgot .bar-header {
+    background-color: transparent;
+    background-image: none; }
+    .forgot .bar-header .button {
+      color: #fff;
+      padding-right: 10px; }
+
+.forgotLink {
+  position: absolute;
+  bottom: 0;
+  right: 10px;
+  z-index: 1;
+  font-size: smaller; }

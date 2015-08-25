@@ -1,4 +1,4 @@
-angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArray, $firebaseObject, Utils) {
+angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArray, $firebaseObject, $localStorage, Utils) {
 
   var ref = new Firebase(FURL);
   var auth = $firebaseAuth(ref);
@@ -10,6 +10,7 @@ angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArr
       var profile = {
         id: uid,
         email: user.email,
+        username: user.username,
         gravatar: get_gravatar(user.email, 40),
         registered_in: Date()
       };
@@ -29,7 +30,7 @@ angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArr
       });
     },
 
-    register: function(user) {
+    signup: function(user) {
       return auth.$createUser({
           email: user.email,
           password: user.password
@@ -50,7 +51,7 @@ angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArr
       console.log("Logout.");
     },
 
-    resetpassword: function(user) {
+    resetPassword: function(user) {
       return auth.$resetPassword({
         email: user.email
       }).then(function() {
@@ -76,9 +77,15 @@ angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArr
   };
 
   auth.$onAuth(function(authData) {
+    console.log('Authed', authData);
     if (authData) {
       angular.copy(authData, Auth.user);
-      Auth.user.profile = $firebaseObject(ref.child('profile').child(authData.uid));
+      var obj = $firebaseObject(ref.child('profile').child($localStorage.userkey));
+
+      obj.$loaded().then(function(data) {
+        console.log('Loaded', data);
+        Auth.user.profile = data;
+      });
 
     } else {
       if (Auth.user && Auth.user.profile) {

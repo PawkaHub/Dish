@@ -1,40 +1,62 @@
-<ion-modal-view ng-controller="LoginCtrl">
-  <ion-content scroll="false">
-    <form novalidate name="loginForm" ng-submit="loginForm.$valid && signIn(user)">
-    <div class="list">
-      <label class="item item-input item-floating-label" ng-class="{ 'has-error' : loginForm.txtemail.$invalid && loginForm.$submitted }">
-        <span class="input-label">Email</span>
-        <input name="txtemail" type="email" ng-model="user.email" placeholder="Email"
-        ng-minlength="5"
-        ng-maxlength="30"
-        required>
-      </label>
-      <!-- Edit this messages if you want -->
-      <div class="form-errors" ng-messages="loginForm.txtemail.$error" ng-if="loginForm.$submitted">
-        <div class="form-error" ng-message="required">This field is required.</div>
-        <div class="form-error" ng-message="email">This field is must be an email.</div>
-        <div class="form-error" ng-message="minlength">This field is must be at least 5 characters.</div>
-        <div class="form-error" ng-message="maxlength">This field is must be less than 30 characters.</div>
-      </div>
-      <label class="item item-input item-floating-label" ng-class="{ 'has-error-lr' : loginForm.txtPassword.$invalid && loginForm.$submitted }">
-        <span class="input-label">Password</span>
-        <input name="txtPassword" type="password" ng-model="user.password" placeholder="Password"
-        ng-minlength="5"
-        ng-maxlength="30"
-        required>
-      </label>
-      <!-- Edit this messages if you want -->
-      <div class="form-errors" ng-messages="loginForm.txtPassword.$error" ng-if="loginForm.$submitted">
-      <div class="form-error" ng-message="required">This field is required.</div>
-      <div class="form-error" ng-message="minlength">This field is must be at least 5 characters.</div>
-      <div class="form-error" ng-message="maxlength">This field is must be less than 30 characters.</div>
-      </div>
-    </div>
-    <div class="padding-top">
-      <input type="submit" class="button button-block button-positive" value="Sign-In">
-      <p class="text-center padding-top">
-          <a href="#/forgot" class="button button-clear button-positive">Forgot password</a><a href="#/register" class="button button-clear button-positive">Register</a>
-    </div>
-    </form>
+<ion-modal-view>
+  <ion-content class="signup" scroll="false">
+    <ion-slide-box class="loginSlider" show-pager="false" delegate-handle="loginSlider">
+      <ion-slide class="signupSlide">
+        <form class="signupForm" name="signupForm" novalidate ng-submit="signupForm.$valid && signup(signupData.user)">
+          <div class="list list-inset">
+            <label class="item item-input">
+              <input type="text" ng-model="signupData.user.username" placeholder="Full Name">
+            </label>
+            <label class="item item-input">
+              <input type="text" ng-model="signupData.user.email" placeholder="Email">
+            </label>
+            <label class="item item-input">
+              <input type="password" ng-model="signupData.user.password" placeholder="Password">
+            </label>
+          </div>
+          <div class="padding">
+            <button class="button button-block button-light" type="submit">Signup</button>
+            <div class="button button-full button-clear button-light" ng-click="toLogin()">
+              Login
+            </div>
+          </div>
+        </form>
+      </ion-slide>
+      <ion-slide class="loginSlide">
+        <form novalidate class="loginForm" name="loginForm" ng-submit="loginForm.$valid && login(loginData.user)">
+          <div class="list list-inset">
+            <label class="item item-input">
+              <input type="text" ng-model="loginData.user.email" placeholder="Email">
+            </label>
+            <label class="item item-input">
+              <input type="password" ng-model="loginData.user.password" placeholder="Password">
+            </label>
+          </div>
+          <div class="padding">
+            <button class="button button-block button-light" type="submit">Log in</button>
+            <div class="button button-full button-clear button-light" ng-click="toSignup()">
+              Signup
+            </div>
+          </div>
+        </form>
+        <div class="button button-clear button-light forgotLink" ng-click="toForgot()">Forgot Password?</div>
+      </ion-slide>
+      <ion-slide class="forgotSlide">
+        <form novalidate class="forgotForm" name="forgotForm" novalidate ng-submit="forgotForm.$valid && resetPassword(forgotData.user)">
+          <div class="list list-inset">
+            <label class="item item-input">
+              <input type="text" ng-model="forgotData.user.email" placeholder="Enter Your Email">
+            </label>
+          </div>
+          <div class="padding">
+            <button class="button button-block button-light" type="submit">Recover Password</button>
+            <div class="button button-full button-clear button-light" ng-click="toLogin()">
+              Back to Login
+            </div>
+          </div>
+        </form>
+      </ion-slide>
+    </ion-slide-box>
+    <div class="logo"></div>
   </ion-content>
 </ion-modal-view>

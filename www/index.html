@@ -22,59 +22,94 @@
     <script src="dist/dist_js/app/app.controller.js"></script>
 
 		<!-- build:js dist_js/app.js -->
-		<script src="views/home/home.js"></script>
-    <script src="views/info/info.js"></script>
-    <script src="views/options/options.js"></script>
-		<script src="js/services/auth.js"></script>
-		<script src="js/services/utils.js"></script>
+    <!-- Components -->
 
-		<!-- libraries -->
+    <!-- bootstrap -->
+    <script src="components/dish-bootstrap/dish-bootstrap.module.js"></script>
+    <script src="components/dish-bootstrap/dish-bootstrap.config.js"></script>
+    <script src="components/dish-bootstrap/dish-bootstrap.constant.js"></script>
+    <script src="components/dish-bootstrap/dish-bootstrap.controller.js"></script>
+    <script src="components/dish-bootstrap/dish-bootstrap.run.js"></script>
+
+    <!-- keyboard -->
+    <script src="components/dish-keyboard/dish-keyboard.module.js"></script>
+    <script src="components/dish-keyboard/dish-keyboard.directive.js"></script>
+    <script src="components/dish-keyboard/dish-keyboard.service.js"></script>
+
+    <!-- input -->
+    <script src="components/dish-input/dish-input.module.js"></script>
+    <script src="components/dish-input/dish-input.directive.js"></script>
+
+    <!-- sheet -->
+    <script src="components/dish-sheet/dish-sheet.module.js"></script>
+    <script src="components/dish-sheet/dish-sheet.service.js"></script>
+
+    <!-- alert -->
+    <script src="components/dish-alert/dish-alert.module.js"></script>
+    <script src="components/dish-alert/dish-alert.service.js"></script>
+
+    <!-- slider -->
+    <script src="components/dish-slider/dish-slider.module.js"></script>
+    <script src="components/dish-slider/dish-slider.service.js"></script>
+    <script src="components/dish-slider/dish-slider.directive.js"></script>
+    <script src="components/dish-slider/dish-slide.directive.js"></script>
+
+    <!-- modal -->
+    <script src="components/dish-modal/dish-modal.module.js"></script>
+    <script src="components/dish-modal/dish-modal.service.js"></script>
+
+    <!-- photo -->
+    <script src="components/dish-photo/dish-photo.module.js"></script>
+    <script src="components/dish-photo/dish-photo.directive.js"></script>
+
+    <!-- Services -->
+    <script src="js/services/auth.js"></script>
+    <script src="js/services/utils.js"></script>
+
+    <!-- Views -->
+
+    <!-- forgot -->
+    <script src="views/dish-forgot/dish-forgot.module.js"></script>
+    <script src="views/dish-forgot/dish-forgot.controller.js"></script>
+
+    <!-- login -->
+    <script src="views/dish-login/dish-login.module.js"></script>
+    <script src="views/dish-login/dish-login.controller.js"></script>
+
+    <!-- signup -->
+    <script src="views/dish-signup/dish-signup.module.js"></script>
+    <script src="views/dish-signup/dish-signup.controller.js"></script>
+
+    <!-- home -->
+    <script src="views/dish-home/dish-home.module.js"></script>
+		<script src="views/dish-home/dish-home.controller.js"></script>
+
+    <!-- profile -->
+    <script src="views/dish-profile/dish-profile.module.js"></script>
+    <script src="views/dish-profile/dish-profile.controller.js"></script>
+
+    <!-- transactions -->
+    <script src="views/dish-transactions/dish-transactions.module.js"></script>
+    <script src="views/dish-transactions/dish-transactions.controller.js"></script>
+
+		<!-- Libraries -->
 		<script src="lib/ngCordova/dist/ng-cordova.min.js"></script>
 		<script src="lib/ngstorage/ngStorage.min.js"></script>
 		<script src="lib/firebase/firebase.js"></script>
 		<script src="lib/angularfire/dist/angularfire.min.js"></script>
 		<script src="lib/angular-messages/angular-messages.min.js"></script>
+
+    <!-- Compiled Templates -->
     <script src="js/templates.js"></script>
     <!--endbuild-->
 
 	</head>
 
-	<body ng-app="App" ng-controller="AppCtrl">
-		<ion-slide-box class="appSlider" delegate-handle="appSlider" show-pager="false" active-slide="1">
-      <ion-slide class="appSlide left">
-        <ion-header-bar align-title="center">
-          <h1 class="title">Left</h1>
-          <div class="buttons">
-            <button class="button button-icon button-clear ion-ios-home" menu-toggle="right" ng-click="toAppSlide(1)">
-            </button>
-          </div>
-        </ion-header-bar>
-        <ng-include src="&apos;info/info.html&apos;"></ng-include>
-      </ion-slide>
-      <ion-slide class="appSlide center">
-        <ion-header-bar align-title="center">
-          <div class="buttons">
-            <button class="button button-icon button-clear ion-navicon" ng-click="toAppSlide(0)">
-              <div class="unread" ng-if="unread"></div>
-            </button>
-          </div>
-          <h1 class="title icon"></h1>
-          <div class="buttons">
-            <button class="button button-icon button-clear ion-ribbon-b" ng-click="toAppSlide(2)">
-            </button>
-          </div>
-        </ion-header-bar>
-        <ng-include src="&apos;home/home.html&apos;"></ng-include></ion-slide>
-      <ion-slide class="appSlide right">
-        <ion-header-bar align-title="center">
-          <div class="buttons">
-            <button class="button button-icon button-clear ion-ios-home" ng-click="toAppSlide(1)">
-            </button>
-          </div>
-          <h1 class="title">Right</h1>
-        </ion-header-bar>
-        <ng-include src="&apos;options/options.html&apos;"></ng-include>
-      </ion-slide>
-    </ion-slide-box>
+	<body ng-app="dish" ng-controller="dishBootstrapController">
+    <dish-slider>
+      <dish-slide template="dish-profile/dish-profile.html"></dish-slide>
+      <dish-slide template="dish-home/dish-home.html"></dish-slide>
+      <dish-slide template="dish-transactions/dish-transactions.html"></dish-slide>
+    </dish-slider>
 	</body>
 </html>

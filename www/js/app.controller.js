@@ -1,8 +1,9 @@
-angular.module('App').controller('AppCtrl', function($scope, $log, $ionicSlideBoxDelegate, $ionicPlatform, $ionicModal, Auth, FURL, Utils, $firebaseObject, $localStorage) {
+angular.module('dish').controller('AppCtrl', function($scope, $log, $ionicSlideBoxDelegate, $ionicPlatform, $ionicModal, Auth, FURL, Utils, $firebaseObject, $localStorage) {
 
 	window.Auth = Auth;
 	$ionicPlatform.ready(function() {
 		if (Auth.signedIn() === false) {
+			$log.log('show shit');
 			$scope.showModal('login');
 		} else {
 			console.log('Auth', Auth.user);
@@ -27,7 +28,7 @@ angular.module('App').controller('AppCtrl', function($scope, $log, $ionicSlideBo
 
 	$scope.toForgot = function() {
 		$ionicSlideBoxDelegate.$getByHandle('loginSlider').slide(2);
-	}
+	};
 
 	$scope.signup = function(user) {
 		$log.log('signup', user);
@@ -82,21 +83,10 @@ angular.module('App').controller('AppCtrl', function($scope, $log, $ionicSlideBo
 		}
 	};
 
-	$scope.resetPassword = function(user) {
-		$log.log('oh', user);
-		if (angular.isDefined(user)) {
-			Auth.resetPassword(user).then(function() {
-				$log.log("Password reset email sent successfully!");
-			}, function(err) {
-				$log.error("Error: ", err);
-			});
-		}
-	};
-
 	$scope.showModal = function(name, payload) {
 		if (!name) return;
 		modalName = name + 'Modal';
-		$ionicModal.fromTemplateUrl(name + '/' + name + '.html', {
+		$ionicModal.fromTemplateUrl(name + '/' + name + '-modal.html', {
 			scope: $scope,
 			hardwareBackButtonClose: $scope.backButtonEnabled
 		}).then(function(modal) {
@@ -115,7 +105,7 @@ angular.module('App').controller('AppCtrl', function($scope, $log, $ionicSlideBo
 		}
 		$scope[modalName].hide();
 		$scope[modalName].remove();
-	}
+	};
 
 	$scope.toAppSlide = function(index) {
 		$ionicSlideBoxDelegate.$getByHandle('appSlider').slide(index);

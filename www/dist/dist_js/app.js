@@ -1,30 +1,549 @@
-'Use Strict';
-angular.module('App').controller('HomeCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $log, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
-	var ref = new Firebase(FURL);
+(function() {
+	'use strict';
 
-	$scope.logout = function() {
-		$log.log('Logout');
-		Auth.logout();
-		$scope.showModal('login');
-	};
-});
-'Use Strict';
-angular.module('App').controller('InfoCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $log, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
-	var ref = new Firebase(FURL);
+	angular.module('dish.bootstrap', []);
+})();
+angular.module('dish.bootstrap')
 
-	$scope.info = function() {
-		$log.log('Info!');
-	};
-});
-'Use Strict';
-angular.module('App').controller('OptionsCtrl', function($scope, $state, $cordovaOauth, $localStorage, $location, $log, $http, $ionicPopup, $firebaseObject, Auth, FURL, Utils) {
-	var ref = new Firebase(FURL);
+.config(function($stateProvider, $urlRouterProvider) {})
+angular.module('dish.bootstrap')
 
-	$scope.option = function() {
-		$log.log('Option!');
-	};
+.constant('FURL', 'https://dishapp.firebaseio.com/')
+(function() {
+	'use strict';
+
+	function DishBootstrapController($scope, $ionicPlatform, $log, Auth, dishModalService) {
+
+		$ionicPlatform.ready(function() {
+			if (Auth.signedIn() === false) {
+				$log.log('show shit');
+				dishModalService.open($scope, 'signup');
+			} else {
+				console.log('Auth', Auth.user);
+				$scope.currentUser = Auth.user;
+			}
+		});
+	}
+
+	DishBootstrapController.$inject = ['$scope', '$ionicPlatform', '$log', 'Auth', 'dishModalService'];
+
+	angular.module('dish.bootstrap')
+		.controller('dishBootstrapController', DishBootstrapController);
+})();
+angular.module('dish.bootstrap')
+
+.run(function($ionicPlatform) {
+	$ionicPlatform.ready(function() {
+		// Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
+		// for form inputs)
+		if (window.cordova && window.cordova.plugins.Keyboard) {
+			window.cordova.plugins.Keyboard.disableScroll(true);
+			cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
+		}
+		if (window.StatusBar) {
+			StatusBar.styleDefault();
+		}
+	});
 });
-angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArray, $firebaseObject, $localStorage, Utils) {
+(function() {
+	'use strict';
+
+	angular.module('dish.keyboard', []);
+})();
+(function() {
+	'use strict';
+
+	function DishKeyboardDirective($window, $q, $timeout) {
+		return {
+			restrict: 'A',
+			link: function(scope, elm, attrs) {
+				//console.log('attrs', attrs, elm);
+				//Maintain focus whenever it gets lost
+				elm[0].addEventListener('focusout', function(e) {
+					if (window.disableConstantFocus) {
+						return;
+					}
+					//console.log('focus lost', e);
+					if (e.relatedTarget && e.relatedTarget.tagName === 'INPUT') {
+						//console.log('don\'t refocus');
+						return;
+					} else {
+						//console.log('refocus');
+						elm[0].focus();
+					}
+				});
+
+				/*ctrl.scope.$on('$ionicView.beforeEnter', function viewEnter(e) {
+					console.log('$ionicView.beforeEnter', attrs.constantFocus);
+					if (attrs.constantFocus === 'first') {
+						document.getElementById('maintainKeyboard').focus();
+					}
+				});*/
+
+				/*ctrl.scope.$on('$ionicView.afterEnter', function viewEnter(e) {
+					//console.log('$ionicView.afterEnter', attrs.constantFocus);
+					//if (attrs.constantFocus === 'first') {
+					elm[0].focus();
+					//}
+				});*/
+
+				/*scope.$on('$ionicView.loaded', function viewEnter(e) {
+					console.log('$ionicView.loaded', attrs.constantFocus);
+				});
+
+				ctrl.scope.$on('$ionicView.enter', function viewEnter(e) {
+					console.log('$ionicView.enter', attrs.constantFocus);
+					if (attrs.constantFocus === 'first') {
+						console.log('focus first');
+						elm[0].focus();
+					}
+				});
+
+				scope.$on('$ionicView.leave', function viewEnter(e) {
+					console.log('$ionicView.leave', attrs.constantFocus);
+				});
+
+				scope.$on('$ionicView.beforeEnter', function viewEnter(e) {
+					console.log('$ionicView.beforeEnter', attrs.constantFocus);
+					document.getElementById('maintainKeyboard').focus();
+				});
+
+				scope.$on('$ionicView.beforeLeave', function viewEnter(e) {
+					console.log('$ionicView.beforeLeave', attrs.constantFocus);
+					//if (attrs.constantFocus === 'first') {
+					//document.getElementById('maintainKeyboard').focus();
+					//}
+				});
+
+				scope.$on('$ionicView.afterEnter', function viewEnter(e) {
+					console.log('$ionicView.afterEnter', attrs.constantFocus);
+				});
+
+				scope.$on('$ionicView.afterLeave', function viewEnter(e) {
+					console.log('$ionicView.afterLeave', attrs.constantFocus);
+				});
+
+				scope.$on('$ionicView.unloaded', function viewEnter(e) {
+					console.log('$ionicView.unloaded', attrs.constantFocus);
+				});*/
+			}
+		};
+	};
+
+	DishKeyboardDirective.$inject = ['$window', '$q', '$timeout'];
+
+	angular.module('dish.keyboard')
+		.directive('constantFocus', DishKeyboardDirective);
+})();
+(function() {
+	'use strict';
+
+	function DishKeyboardService($window, $q, $timeout) {
+		var _self = this;
+
+		_self.close = function _close() {
+			if (window.cordova) {
+				window.disableConstantFocus = true;
+				ionic.keyboard.disable();
+				cordova.plugins.Keyboard.close();
+				$timeout(function() {
+					ionic.keyboard.enable();
+					window.disableConstantFocus = false;
+				}, 400);
+			}
+		};
+
+		_self.focusInput = function _focusInput(inputId, delay) {
+			var input;
+			var focusTime = 0;
+			if (inputId) {
+				if (delay) {
+					focusTime = 400;
+				}
+				$timeout(function() {
+					input = document.querySelector('#' + inputId);
+					if (input) {
+						input.focus();
+					}
+				}, focusTime);
+			}
+		}
+	};
+
+	DishKeyboardService.$inject = ['$window', '$q', '$timeout'];
+
+	angular.module('dish.keyboard')
+		.service('dishKeyboardService', DishKeyboardService);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.input', []);
+})();
+(function() {
+	'use strict';
+
+	function DishInputDirective($window, $q, $ionicPopup) {
+		var invalid;
+		return {
+			restrict: 'AE',
+			require: 'ngModel',
+			scope: {
+				ngModel: '='
+			},
+			replace: true,
+			link: function(scope, elm, attrs, ctrl) {
+				//Get the last section of the model and use that as the input name
+				scope.inputName = attrs.ngModel.split('.').pop();
+				scope.placeholder = attrs.placeholder;
+				scope.id = attrs.id;
+
+				//Based on the input name, assign the proper field type accordingly if it's a password or email
+				switch (scope.inputName) {
+					case 'email':
+						scope.inputType = 'email';
+						scope.minLength = 0;
+						scope.pattern = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$';
+						break;
+					case 'password':
+						scope.inputType = 'password';
+						scope.minLength = 8;
+						break;
+					case 'phone':
+						scope.inputType = 'number';
+						scope.minLength = 9;
+						scope.pattern = '[0-9]*';
+						break;
+					case 'experience':
+						scope.inputType = 'number';
+						scope.minLength = 0;
+						scope.maxLength = 3;
+						scope.pattern = '[0-9]*';
+						break;
+					default:
+						scope.inputType = 'text';
+						scope.minLength = 0;
+				}
+			},
+			template: '<label class="item item-input dish-input"><input id="{{id}}" name="{{inputName}}" type="{{inputType}}" autocomplete="off" autocorrect="off" autocapitalize="off" required="true" ng-model="ngModel" pattern="{{pattern}}" ng-minlength="minLength" placeholder="{{placeholder}}"><i class="error icon ion-ios-close assertive"></i></label>'
+		};
+	}
+
+	DishInputDirective.$inject = ['$window', '$q', '$ionicPopup'];
+
+	angular.module('dish.input')
+		.directive('dishInput', DishInputDirective);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.sheet', []);
+})();
+(function() {
+	'use strict';
+
+	function DishSheetService($window, $q, $ionicActionSheet, $timeout) {
+		var _self = this;
+		var sheetActive = false;
+
+		_self.show = function _show(options) {
+			var deferred = $q.defer();
+			var actionSheet;
+
+			if (sheetActive) {
+				return deferred.promise;
+			}
+
+			if (!options) {
+				deferred.reject({
+					error: 'No options included for action sheet.'
+				});
+			}
+
+			sheetActive = true;
+
+			actionSheet = $ionicActionSheet.show({
+				buttons: options,
+				cancelText: 'Cancel',
+				cancel: function() {
+					sheetActive = false;
+				},
+				buttonClicked: function(index) {
+					sheetActive = false;
+					actionSheet(); //Close the actionSheet
+					deferred.resolve(index);
+				}
+			})
+			return deferred.promise;
+		};
+	};
+
+	DishSheetService.$inject = ['$window', '$q', '$ionicActionSheet', '$timeout'];
+
+	angular.module('dish.sheet')
+		.service('dishSheetService', DishSheetService);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.alert', []);
+})();
+(function() {
+	'use strict';
+
+	function DishAlertService($window, $q, $ionicPopup, $timeout) {
+		var _self = this;
+		var alertActive = false;
+
+		_self.show = function _showAlert(data) {
+			var deferred = $q.defer();
+			var alertPopup;
+
+			if (alertActive) {
+				return deferred.promise;
+			}
+
+			if (!data) {
+				deferred.reject({
+					error: 'No data included for alert.'
+				});
+			}
+
+			alertActive = true;
+
+			alertPopup = $ionicPopup.alert({
+				title: '',
+				template: data.message,
+				buttons: [{
+					text: data.buttonText
+				}]
+			});
+
+			alertPopup.then(function(res) {
+				alertActive = false;
+				deferred.resolve(res);
+			});
+
+			return deferred.promise;
+		};
+	};
+
+	DishAlertService.$inject = ['$window', '$q', '$ionicPopup', '$timeout'];
+
+	angular.module('dish.alert')
+		.service('dishAlertService', DishAlertService);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.slider', []);
+})();
+(function() {
+	'use strict';
+
+	function DishSliderService($window, $q, $timeout, $ionicSlideBoxDelegate) {
+		var _self = this;
+
+		_self.enableSlide = function _enableSlide(enabled) {
+			$ionicSlideBoxDelegate.$getByHandle('dishSlider').enableSlide(enabled);
+		};
+
+		_self.slide = function _slide(index, speed) {
+			//console.log('DishSliderService slide');
+			window.disableConstantFocus = true;
+			$ionicSlideBoxDelegate.$getByHandle('dishSlider').slide(index, speed);
+			$timeout(function() {
+				window.disableConstantFocus = false;
+			}, 400);
+		};
+
+		_self.currentIndex = function _currentIndex() {
+			$ionicSlideBoxDelegate.$getByHandle('dishSlider').currentIndex();
+		}
+	}
+
+	DishSliderService.$inject = ['$window', '$q', '$timeout', '$ionicSlideBoxDelegate'];
+
+	angular.module('dish.slider')
+		.service('dishSliderService', DishSliderService);
+})();
+(function() {
+	'use strict';
+
+	function DishSliderDirective($window, $q, $compile, $templateRequest, $ionicSlideBoxDelegate, dishSliderService) {
+		return {
+			restrict: 'E',
+			transclude: true,
+			scope: {
+				onSlideChanged: '&'
+			},
+			link: function(scope, elm, attrs, ctrl, transclude) {
+				//Get the type and use that as the name of the modal, showing a default modal if the template doesn't exist
+				var templateUrl;
+
+				transclude(scope, function(clones) {
+					angular.forEach(clones, function(clone) {
+						if (clone.tagName === 'DISH-SLIDE') {
+							//console.log('found', clone);
+							templateUrl = clone.attributes.template.value;
+							scope.slides.push(templateUrl);
+						}
+					});
+				});
+			},
+			controller: ['$scope', function($scope) {
+				$scope.slides = [];
+				$scope.slide = function(index) {
+					dishSliderService.slide(index);
+				};
+			}],
+			template: '<ion-slide-box class="dish-slider" show-pager="false" delegate-handle="dishSlider" active-slide="0"><dish-slide ng-repeat="slide in slides" template="{{slide}}"></dish-slide></ion-slide-box>'
+		};
+	}
+
+	DishSliderDirective.$inject = ['$window', '$q', '$compile', '$templateRequest', '$ionicSlideBoxDelegate', 'dishSliderService'];
+
+	angular.module('dish.slider')
+		.directive('dishSlider', DishSliderDirective);
+})();
+(function() {
+	'use strict';
+
+	function DishSlideDirective($window, $q, $templateRequest, $compile) {
+		return {
+			restrict: 'E',
+			transclude: true,
+			scope: {},
+			link: function(scope, elm, attrs, ctrl) {
+				//console.log('dishSlide!', elm, attrs);
+				//Get the templateContentUrl and use that to display the appropriate content page
+				var templateContentUrl = attrs.template;
+				$templateRequest(templateContentUrl).then(function(html) {
+					var template = angular.element(html);
+					elm.append(template);
+					$compile(template)(scope);
+				});
+				elm[0].classList.add('slider-slide');
+			},
+		};
+	}
+
+	DishSlideDirective.$inject = ['$window', '$q', '$templateRequest', '$compile'];
+
+	angular.module('dish.slider')
+		.directive('dishSlide', DishSlideDirective);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.modal', []);
+})();
+(function() {
+	'use strict';
+
+	function DishModalService($window, $q, $ionicModal) {
+		var _self = this;
+		var dishModal, modalUrl;
+
+		_self.open = function open($scope, name) {
+			if (!name) return;
+			modalUrl = 'views/dish-' + name + '/' + 'dish-' + name + '-modal.html';
+			$ionicModal.fromTemplateUrl(modalUrl, {
+				scope: $scope,
+				hardwareBackButtonClose: false,
+				focusFirstInput: true,
+				animation: 'slide-in-up'
+			}).then(function(modal) {
+				dishModal = modal;
+				dishModal.show();
+			});
+		};
+
+		_self.close = function close() {
+			dishModal.hide();
+			dishModal.remove();
+		};
+	}
+
+	DishModalService.$inject = ['$window', '$q', '$ionicModal'];
+
+	angular.module('dish.modal')
+		.service('dishModalService', DishModalService);
+})();
+(function() {
+	'use strict';
+	angular.module('dish.photo', []);
+})();
+(function() {
+	'use strict';
+
+	function DishPhoto($q, $cordovaCamera, dishSheetService, dishAlertService) {
+		return {
+			restrict: 'E',
+			replace: true,
+			require: 'ngModel',
+			scope: {
+				ngModel: '='
+			},
+			link: function(scope, elm, attrs, ctrl) {
+				//console.log('Dish-photo', scope, attrs);
+			},
+			controller: ['$scope', function($scope) {
+				var _self = $scope;
+				var options = [];
+				var message = {};
+				if (navigator.camera) {
+					var imageOptions = {
+						quality: 50,
+						destinationType: Camera.DestinationType.DATA_URL,
+						sourceType: Camera.PictureSourceType.CAMERA,
+						allowEdit: false,
+						targetWidth: 800,
+						targetHeight: 800,
+						encodingType: Camera.EncodingType.JPEG,
+						popoverOptions: CameraPopoverOptions,
+						saveToPhotoAlbum: false
+					};
+				}
+
+				_self.openPicker = function() {
+					console.log('DishPhoto', $scope.ngModel, $scope.type);
+					options[0] = {
+						text: 'Choose from Library'
+					};
+					options[1] = {
+						text: 'Take Photo'
+					};
+					dishSheetService.show(options).then(function(button) {
+						if (button === 0) {
+							console.log('Take from library');
+							imageOptions.sourceType = Camera.PictureSourceType.PHOTOLIBRARY;
+						}
+						if (button === 1) {
+							console.log('Take photo');
+							imageOptions.sourceType = Camera.PictureSourceType.CAMERA;
+						}
+						$cordovaCamera.getPicture(imageOptions).then(function(imageURI) {
+							_self.photo = "data:image/jpeg;base64," + imageURI;
+						}, function(err) {
+							// error
+							message.message = err;
+							message.buttonText = 'Sure Thing.';
+							dishAlertService.show(message);
+						});
+					});
+				};
+			}],
+			template: '<div class="photo" ng-click="openPicker()"><div class="uploaded-photo" style="background-image:url({{croppedPhoto}});"></div></div>'
+		};
+	}
+
+	DishPhoto.$inject = ['$q', '$cordovaCamera', 'dishSheetService', 'dishAlertService'];
+
+	angular.module('dish.photo')
+		.directive('dishPhoto', DishPhoto);
+})();
+angular.module('dish').factory('Auth', function(FURL, $firebaseAuth, $firebaseArray, $firebaseObject, $localStorage, Utils) {
 
   var ref = new Firebase(FURL);
   var auth = $firebaseAuth(ref);
@@ -354,25 +873,25 @@ angular.module('App').factory('Auth', function(FURL, $firebaseAuth, $firebaseArr
   return Auth;
 
 });
-angular.module('App').factory('Utils', function($ionicLoading,$ionicPopup) {
+angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 
 	var Utils = {
 
-    show: function() {
-      $ionicLoading.show({
-  	    animation: 'fade-in',
-  	    showBackdrop: false,
-  	    maxWidth: 200,
-  	    showDelay: 500,
-        template: '<p class="item-icon-left">Loading...<ion-spinner icon="lines"/></p>'
-      });
-    },
+		show: function() {
+			$ionicLoading.show({
+				animation: 'fade-in',
+				showBackdrop: false,
+				maxWidth: 200,
+				showDelay: 500,
+				template: '<p class="item-icon-left">Loading...<ion-spinner icon="lines"/></p>'
+			});
+		},
 
-    hide: function(){
-      $ionicLoading.hide();
-    },
+		hide: function() {
+			$ionicLoading.hide();
+		},
 
-		alertshow: function(tit,msg){
+		alertshow: function(tit, msg) {
 			var alertPopup = $ionicPopup.alert({
 				title: tit,
 				template: msg
@@ -384,32 +903,213 @@ angular.module('App').factory('Utils', function($ionicLoading,$ionicPopup) {
 
 		errMessage: function(err) {
 
-	    var msg = "Unknown Error...";
+			var msg = "Unknown Error...";
 
-	    if(err && err.code) {
-	      switch (err.code) {
-	        case "EMAIL_TAKEN":
-	          msg = "This Email has been taken."; break;
-	        case "INVALID_EMAIL":
-	          msg = "Invalid Email."; break;
-          case "NETWORK_ERROR":
-	          msg = "Network Error."; break;
-	        case "INVALID_PASSWORD":
-	          msg = "Invalid Password."; break;
-	        case "INVALID_USER":
-	          msg = "Invalid User."; break;
-	      }
-	    }
-			Utils.alertshow("Error",msg);
-	},
+			if (err && err.code) {
+				switch (err.code) {
+					case "EMAIL_TAKEN":
+						msg = "This Email has been taken.";
+						break;
+					case "INVALID_EMAIL":
+						msg = "Invalid Email.";
+						break;
+					case "NETWORK_ERROR":
+						msg = "Network Error.";
+						break;
+					case "INVALID_PASSWORD":
+						msg = "Invalid Password.";
+						break;
+					case "INVALID_USER":
+						msg = "Invalid User.";
+						break;
+				}
+			}
+			Utils.alertshow("Error", msg);
+		},
 
 
-  };
+	};
 
 	return Utils;
 
 });
+(function() {
+	'use strict';
 
+	angular.module('dish.forgot', []);
+})();
+(function() {
+  'use strict';
+
+  function DishForgotController($scope, Auth) {
+
+    $scope.resetPassword = function(user) {
+      $log.log('oh', user);
+      if (angular.isDefined(user)) {
+        Auth.resetPassword(user).then(function() {
+          $log.log("Password reset email sent successfully!");
+        }, function(err) {
+          $log.error("Error: ", err);
+        });
+      }
+    };
+  }
+
+  DishForgotController.$inject = ['$scope'];
+
+  angular.module('dish.forgot')
+    .controller('dishForgotController', DishForgotController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.login', []);
+})();
+(function() {
+	'use strict';
+
+	function DishLoginController($scope, $log, $firebaseObject, Utils, Auth) {
+
+		$scope.login = function(user) {
+			$log.log('Logging In', user);
+			if (angular.isDefined(user)) {
+				Utils.show();
+				Auth.login(user).then(function(authData) {
+					//console.log('user id:' + JSON.stringify(authData));
+
+					ref.child('profile').orderByChild('id').equalTo(authData.uid).on('child_added', function(snapshot) {
+						console.log(snapshot.key());
+						userkey = snapshot.key();
+						$log.log('userkey', userkey);
+						var obj = $firebaseObject(ref.child('profile').child(userkey));
+						$log.log('profile', obj);
+
+						obj.$loaded().then(function(data) {
+								$log.log('the data', data);
+								$localStorage.email = obj.email;
+								$localStorage.userkey = userkey;
+
+								$log.log('userkey', $localStorage.userkey);
+
+								Auth.user.profile = data;
+								$scope.currentUser = Auth.user;
+
+								Utils.hide();
+								$scope.closeModal('login');
+							})
+							.catch(function(error) {
+								console.error('Error:', error);
+							});
+					});
+
+				}, function(err) {
+					Utils.hide();
+					Utils.errMessage(err);
+				});
+			}
+		};
+	}
+
+	DishLoginController.$inject = ['$scope', '$log', '$firebaseObject', 'Utils', 'Auth'];
+
+	angular.module('dish.login')
+		.controller('dishLoginController', DishLoginController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.signup', []);
+})();
+(function() {
+  'use strict';
+
+  function DishSignupController($scope, $log, Auth, Utils) {
+
+    $scope.signup = function(user) {
+      $log.log('signup', user);
+      if (angular.isDefined(user)) {
+        Utils.show();
+        Auth.signup(user).then(function(authData) {
+          $log.log('User successfully created:', authData);
+          $scope.login(user);
+        }, function(err) {
+          Utils.hide();
+          Utils.errMessage(err);
+        });
+      }
+    };
+  }
+
+  DishSignupController.$inject = ['$scope', '$log', 'Auth', 'Utils'];
+
+  angular.module('dish.signup')
+    .controller('dishSignupController', DishSignupController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.home', []);
+})();
+(function() {
+	'use strict';
+
+	function DishHomeController($scope, $log) {
+
+		$scope.home = function() {
+			$log.log('home');
+		};
+	}
+
+	DishHomeController.$inject = ['$scope', '$log'];
+
+	angular.module('dish.home')
+		.controller('dishHomeController', DishHomeController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.profile', []);
+})();
+(function() {
+	'use strict';
+
+	function DishProfileController($scope, $log, Auth) {
+
+		$scope.profile = function() {
+			$log.log('profile');
+		};
+
+		$scope.logout = function() {
+			$log.log('logout');
+			Auth.logout();
+		}
+	}
+
+	DishProfileController.$inject = ['$scope', '$log', 'Auth'];
+
+	angular.module('dish.profile')
+		.controller('dishProfileController', DishProfileController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.transactions', []);
+})();
+(function() {
+	'use strict';
+
+	function DishTransactionsController($scope, $log) {
+
+		$scope.transaction = function() {
+			$log.log('transaction');
+		};
+	}
+
+	DishTransactionsController.$inject = ['$scope', '$log'];
+
+	angular.module('dish.transactions')
+		.controller('dishTransactionsController', DishTransactionsController);
+})();
 /*!
  * ngCordova
  * v0.1.20-alpha
@@ -709,9 +1409,10 @@ l?h.setClass(e,"ng-active","ng-inactive"):h.setClass(e,"ng-inactive","ng-active"
 k(e[0],a))?a.next=b.next:c.head=b.next;delete l[d];c.reRender()}}]}}]).directive("ngMessagesInclude",["$templateRequest","$document","$compile",function(h,q,m){return{restrict:"AE",require:"^^ngMessages",link:function(e,a,g){var k=g.ngMessagesInclude||g.src;h(k).then(function(c){m(c)(e,function(c){a.after(c);c=z(q[0].createComment(" ngMessagesInclude: "+k+" "));a.after(c);a.remove()})})}}}]).directive("ngMessage",v("AE")).directive("ngMessageExp",v("A"))})(window,window.angular);
 //# sourceMappingURL=angular-messages.min.js.map
 
-angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("forgot/forgot.html","<ion-view view-title=\"Forgot Password\">\n  <ion-content class=\"padding-top\">\n    <div class=\"text-center padding\">\n      <i class=\"icon ion-ios-infinite larger positive\"></i>\n    </div>\n    <form name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetpassword(user)\">\n   <div class=\"list\">\n      <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error\' : forgotForm.txtemail.$invalid && forgotForm.$submitted }\">\n        <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" ng-model=\"user.email\" placeholder=\"Email\" type=\"email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"forgotForm.txtemail.$error\" ng-if=\"forgotForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">This field is required</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">This field is must be at least 5 characters.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">This field is must be less than 30 characters.</div>\n      </div>\n      <div class=\"padding-top\">\n      <input type=\"submit\" value=\"Reset my password\" class=\"button button-block button-positive\"/>\n  </form>\n    </div>\n  </ion-content>\n</ion-view>\n");
-$templateCache.put("home/home.html","<ion-content class=\"home\" ng-controller=\"HomeCtrl\">\n  <h1>Hello {{currentUser.profile.username}}!</h1>\n  {{currentUser.profile}}\n  <button ng-click=\"logout()\" class=\"button button-clear button-positive\">Logout</button>\n</ion-content>\n");
-$templateCache.put("info/info.html","<ion-content class=\"info\" ng-controller=\"InfoCtrl\">\n  <h1>Info!</h1>\n  <button ng-click=\"info()\" class=\"button button-clear button-positive\">Info</button>\n</ion-content>\n");
-$templateCache.put("login/login.html","<ion-modal-view>\n  <ion-content class=\"signup\" scroll=\"false\">\n    <ion-slide-box class=\"loginSlider\" show-pager=\"false\" delegate-handle=\"loginSlider\">\n      <ion-slide class=\"signupSlide\">\n        <form class=\"signupForm\" name=\"signupForm\" novalidate ng-submit=\"signupForm.$valid && signup(signupData.user)\">\n          <div class=\"list list-inset\">\n            <label class=\"item item-input\">\n              <input type=\"text\" ng-model=\"signupData.user.username\" placeholder=\"Full Name\">\n            </label>\n            <label class=\"item item-input\">\n              <input type=\"text\" ng-model=\"signupData.user.email\" placeholder=\"Email\">\n            </label>\n            <label class=\"item item-input\">\n              <input type=\"password\" ng-model=\"signupData.user.password\" placeholder=\"Password\">\n            </label>\n          </div>\n          <button class=\"button button-block form-button\" type=\"submit\">Signup</button>\n          <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n            Login\n          </div>\n        </form>\n      </ion-slide>\n      <ion-slide class=\"loginSlide\">\n        <form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\">\n          <div class=\"list list-inset\">\n            <label class=\"item item-input\">\n              <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n            </label>\n            <label class=\"item item-input\">\n              <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n            </label>\n          </div>\n          <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n          <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n            Signup\n          </div>\n        </form>\n        <div class=\"button button-clear button-light forgotLink\" ng-click=\"toForgot()\">Forgot Password?</div>\n      </ion-slide>\n      <ion-slide class=\"forgotSlide\">\n        <form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\">\n          <div class=\"list list-inset\">\n            <label class=\"item item-input\">\n              <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n            </label>\n          </div>\n          <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n          <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n            Back to Login\n          </div>\n        </form>\n      </ion-slide>\n    </ion-slide-box>\n    <div class=\"logo\"></div>\n  </ion-content>\n</ion-modal-view>");
-$templateCache.put("options/options.html","<ion-content class=\"home\" ng-controller=\"OptionsCtrl\">\n  <h1>Options!</h1>\n  <button ng-click=\"option()\" class=\"button button-clear button-positive\">Option</button>\n</ion-content>\n");
-$templateCache.put("register/register.html","<ion-view view-title=\"Register\">\n  <ion-content class=\"padding-top\">\n    <div class=\"text-center padding-top\">\n      <i class=\"icon ion-android-person-add larger positive\"></i>\n    </div>\n    <form name=\"registerForm\" novalidate ng-submit=\"registerForm.$valid && register(user)\"\n    ng-class=\"{ \'has-error\' : registerForm.txtemail.$invalid && registerForm.$submitted }\">\n    <div class=\"list\">\n        <label class=\"item item-input item-floating-label\">\n          <span class=\"input-label\">Email</span>\n        <input name=\"txtemail\" type=\"email\" ng-model=\"user.email\" placeholder=\"Email\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"30\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"registerForm.txtemail.$error\" ng-if=\"registerForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">Debes ingresar algo como nombre@email.com.</div>\n        <div class=\"form-error\" ng-message=\"email\">This field is must be an email.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">Ops, parece ser muy grande el correo.</div>\n      </div>\n        <label class=\"item item-input item-floating-label\" ng-class=\"{ \'has-error-lr\' : registerForm.txtpassword.$invalid  && registerForm.$submitted}\">\n        <span class=\"input-label\">Password</span>\n        <input name=\"txtpassword\" type=\"password\" ng-model=\"user.password\" placeholder=\"Password\"\n        ng-minlength=\"5\"\n        ng-maxlength=\"25\"\n        required>\n      </label>\n      <div class=\"form-errors\" ng-messages=\"registerForm.txtpassword.$error\" ng-if=\"registerForm.$submitted\">\n        <div class=\"form-error\" ng-message=\"required\">Debes ingresar una Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"minlength\">Ops, parece ser muy corta las Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"maxlength\">Ops, parece ser muy grande las Contraseña.</div>\n        <div class=\"form-error\" ng-message=\"pattern\">Debe ingresar solo caracteres letras y numeros.</div>\n      </div>\n    </div>\n    <div class=\"padding-top\">\n      <input type=\"submit\" value=\"Register\" class=\"button button-block button-positive\"/>\n    </div>\n  </form>\n  </ion-content>\n</ion-view>\n");}]);
+angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("dish-forgot/dish-forgot.html","<form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\" ng-controller=\"dishForgotController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n    Back to Login\n  </div>\n</form>");
+$templateCache.put("dish-home/dish-home.html","<ion-scroll class=\"home\" ng-controller=\"dishHomeController\" paging=\"true\" scrollbar-y=\"false\">\n  <div class=\"overlay top\">\n    <div class=\"overlay-title\">Cook</div>\n    <div class=\"food-card\">\n      <div class=\"food-image\"></div>\n      <dish-input ng-model=\"food.name\" placeholder=\"Food Name\"></dish-input>\n      <dish-photo ng-model=\"food.photo\"></dish-photo>\n    </div>\n  </div>\n  <div class=\"overlay bottom\" ng-click=\"home()\">Food</div>\n</ion-scroll>\n<!--<ion-content class=\"home\" ng-controller=\"HomeCtrl\" paging=\"true\" scrollbar-y=\"false\">\n	Food\n</ion-content>-->\n<!--<ng-include src=\"&apos;cook/cook.html&apos;\"></ng-include>-->");
+$templateCache.put("dish-login/dish-login.html","<form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\" ng-controller=\"dishLoginController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n    Signup\n  </div>\n</form>");
+$templateCache.put("dish-profile/dish-profile.html","<ion-content class=\"profile\" ng-controller=\"dishProfileController\">\n  <h1>Profile!</h1>\n  <button ng-click=\"profile()\" class=\"button button-clear button-positive\">Profile!</button>\n   <button ng-click=\"logout()\" class=\"button button-clear button-positive\">Logout</button>\n</ion-content>\n");
+$templateCache.put("dish-signup/dish-signup-modal.html","<ion-modal-view class=\"modal signup\">\n  <dish-slider>\n    <dish-slide template=\"dish-signup/dish-signup.html\"></dish-slide>\n    <dish-slide template=\"dish-login/dish-login.html\"></dish-slide>\n    <dish-slide template=\"dish-forgot/dish-forgot.html\"></dish-slide>\n  </dish-slider>\n  <div class=\"logo\"></div>\n</ion-modal-view>");
+$templateCache.put("dish-signup/dish-signup.html","<form class=\"signupForm\" name=\"signupForm\" novalidate ng-submit=\"signupForm.$valid && signup(signupData.user)\" ng-controller=\"dishSignupController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"signupData.user.username\" placeholder=\"Full Name\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"signupData.user.email\" placeholder=\"Email\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"password\" ng-model=\"signupData.user.password\" placeholder=\"Password\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Signup</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n    Login\n  </div>\n</form>");
+$templateCache.put("dish-transactions/dish-transactions.html","<ion-content class=\"transactions\" ng-controller=\"dishTransactionsController\">\n  <h1 ng-click=\"transaction()\">Transactions!</h1>\n</ion-content>\n");}]);

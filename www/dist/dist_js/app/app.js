@@ -1,17 +1,23 @@
 'Use Strict';
-angular.module('App', ['ionic', 'ngStorage', 'ngCordova', 'firebase', 'ngMessages', 'templates'])
-  .config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider) {}])
-  // Changue this for your Firebase App URL.
-  .constant('FURL', 'https://dishapp.firebaseio.com/')
-  .run(['$ionicPlatform', function($ionicPlatform) {
-    $ionicPlatform.ready(function() {
-      // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
-      // for form inputs)
-      if (window.cordova && window.cordova.plugins.Keyboard) {
-        cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      }
-      if (window.StatusBar) {
-        StatusBar.styleDefault();
-      }
-    });
-  }]);
+angular.module('dish', [
+  'ionic',
+  'ngStorage',
+  'ngCordova',
+  'ngMessages',
+  'firebase',
+  'templates',
+  'dish.bootstrap',
+  'dish.keyboard',
+  'dish.input',
+  'dish.sheet',
+  'dish.alert',
+  'dish.modal',
+  'dish.slider',
+  'dish.photo',
+  'dish.forgot',
+  'dish.login',
+  'dish.signup',
+  'dish.home',
+  'dish.profile',
+  'dish.transactions'
+]);

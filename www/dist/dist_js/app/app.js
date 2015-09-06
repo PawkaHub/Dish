@@ -23,5 +23,10 @@ angular.module('dish', [
   'dish.food',
   'dish.cook',
   'dish.profile',
-  'dish.transactions'
+  'dish.favorites',
+  'dish.payment',
+  'dish.transactions',
+  'dish.promotions',
+  'dish.help',
+  'dish.settings'
 ]);

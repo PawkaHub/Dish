@@ -1,14 +1,7 @@
 (function() {
 	'use strict';
 
-	function DishProfileController($scope, $log, Auth, dishModalService) {
-
-		$scope.logout = function() {
-			$log.log('logout');
-			Auth.logout();
-			dishModalService.open($scope, 'signup');
-		}
-	}
+	function DishProfileController($scope, $log, Auth, dishModalService) {}
 
 	DishProfileController.$inject = ['$scope', '$log', 'Auth', 'dishModalService'];
 

@@ -1,7 +1,7 @@
 (function() {
 	'use strict';
 
-	function DishHomeController($scope, $log, Auth) {
+	function DishHomeController($scope, $log, Auth, dishKeyboardService, dishModalService) {
 
 		$scope.swiper = {};
 		$scope.currentUser = Auth.user;
@@ -12,7 +12,7 @@
 		}, {
 			template: 'dish-food/dish-food.html'
 		}, {
-			template: 'dish-transactions/dish-transactions.html'
+			template: 'dish-favorites/dish-favorites.html'
 		}];
 
 		$scope.getCardWidth = function(food, index) {
@@ -38,9 +38,27 @@
 			$scope.swiper.slideTo(2);
 		}
 
+		$scope.onSwiperReady = function(swiper) {
+			swiper.on('sliderMove', function() {
+				dishKeyboardService.close();
+			});
+		}
+
+		$scope.onScroll = function() {
+			dishKeyboardService.close();
+		}
+
+		$scope.openModal = function(name) {
+			if (!name) return;
+			dishModalService.open($scope, name);
+		}
+
+		$scope.closeModal = function() {
+			dishModalService.close();
+		}
 	}
 
-	DishHomeController.$inject = ['$scope', '$log', 'Auth'];
+	DishHomeController.$inject = ['$scope', '$log', 'Auth', 'dishKeyboardService', 'dishModalService'];
 
 	angular.module('dish.home')
 		.controller('dishHomeController', DishHomeController);

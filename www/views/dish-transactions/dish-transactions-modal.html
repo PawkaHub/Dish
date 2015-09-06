@@ -1,12 +1,8 @@
-<div class="transactions" ng-controller="dishTransactionsController">
-	<div class="nav-icon left food-icon" ng-click="toFood()"></div>
-	<div class="title">{{currentUser.profile.username}}</div>
-	<div class="nav-icon right cook-icon" ng-click="toCook()"></div>
-  <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
+<ion-modal-view class="modal transactions" ng-controller="dishTransactionsController">
+	<div class="title">History</div>
+	<div class="nav-icon right close-icon" ng-click="closeModal()"></div>
+  <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
   	<div collection-repeat="transaction in transactions" item-width="getCardWidth(transaction, $index)" item-height="getCardHeight(transaction, $index)">
-  		<div ng-if="$index === 0" class="card-holder profile">
-  			<ng-include src="&apos;dish-profile/dish-profile.html&apos;"></ng-include>
-  		</div>
   		<div class="card-holder transaction">
 				<div class="card">
 					<div class="card-image" style="background-image:url({{transaction.photo}});"></div>
@@ -19,4 +15,4 @@
 			</div>
   	</div>
 	</ion-scroll>
-</div>
+</ion-modal-view>

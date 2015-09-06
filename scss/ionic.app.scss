@@ -400,6 +400,24 @@ body {
 	.pane {
 		background-color: $secondTint;
 	}
+	.payment-modal {
+		.title {
+			right: 0;
+			left: 0;
+			padding-right: 50px;
+			padding-left: 50px;
+			z-index: 9;
+			background-color: rgba(255,255,255,0.8);
+		}
+		.cards {
+			top: 0;
+			.card-holder {
+				&.first {
+					margin-top: 45px;
+				}
+			}
+		}
+	}
 }
 
 // Signup
@@ -537,6 +555,7 @@ body {
 	top: 15px;
 	width: 40px;
 	height: 40px;
+	z-index: 10;
 	line-height: 40px;
 	color: #333;
 	font-size: 30px;
@@ -571,6 +590,13 @@ body {
 	&.profile-icon {
 		&:before {
 			content: '\f3a0';
+		}
+	}
+	&.close-icon {
+		font-size: 40px;
+		line-height: 35px;
+		&:before {
+			content: '\f404';
 		}
 	}
 	&.food-icon {
@@ -636,6 +662,17 @@ body {
 					height: inherit;
 				}
 			}
+			.card-options {
+				position: absolute;
+				top: 200px;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				.dish-input {
+					line-height: 50px;
+					color: #333;
+				}
+			}
 		}
 		&.food, &.transaction {
 			.card-image {
@@ -644,6 +681,9 @@ body {
 					content: 'No photo available';
 				}
 			}
+		}
+		&.payment {
+			height: 226px;
 		}
 	}
 }

@@ -2,7 +2,7 @@
   <div class="nav-icon left cook-icon" ng-click="toCook()"></div>
 	<div class="title">Eat</div>
   <div class="nav-icon right profile-icon" ng-click="toProfile()"></div>
-	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
+	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
     <div class="card-holder food" collection-repeat="food in foods" item-width="getCardWidth(food, $index)" item-height="getCardHeight(food, $index)">
       <div class="card">
       	<div class="card-image" style="background-image:url({{food.photo}});"></div>

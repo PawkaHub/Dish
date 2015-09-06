@@ -1,0 +1,22 @@
+<div class="favorites" ng-controller="dishFavoritesController">
+	<div class="nav-icon left food-icon" ng-click="toFood()"></div>
+	<div class="title">{{currentUser.profile.username}}</div>
+	<!--<div class="nav-icon right cook-icon" ng-click="toCook()"></div>-->
+  <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
+  	<div collection-repeat="favorite in favorites" item-width="getCardWidth(favorite, $index)" item-height="getCardHeight(favorite, $index)">
+  		<div ng-if="$index === 0" class="card-holder profile">
+  			<ng-include src="&apos;dish-profile/dish-profile.html&apos;"></ng-include>
+  		</div>
+  		<div class="card-holder favorite">
+				<div class="card">
+					<div class="card-image" style="background-image:url({{favorite.photo}});"></div>
+	        <dish-input ng-model="favorite.name" placeholder="Name" readonly="true"></dish-input>
+	        <dish-input ng-model="favorite.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
+	        <dish-input class="half" ng-model="favorite.portions" placeholder="Portions" readonly="true"></dish-input>
+	        <dish-input class="half" ng-model="favorite.price" placeholder="Price" readonly="true"></dish-input>
+	        <dish-button text="View Meal"></dish-button>
+				</div>
+			</div>
+  	</div>
+	</ion-scroll>
+</div>

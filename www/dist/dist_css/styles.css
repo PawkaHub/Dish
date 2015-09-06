@@ -8000,6 +8000,17 @@ body {
 
 .modal-wrapper .pane {
   background-color: #f5f5f5; }
+.modal-wrapper .payment-modal .title {
+  right: 0;
+  left: 0;
+  padding-right: 50px;
+  padding-left: 50px;
+  z-index: 9;
+  background-color: rgba(255, 255, 255, 0.8); }
+.modal-wrapper .payment-modal .cards {
+  top: 0; }
+  .modal-wrapper .payment-modal .cards .card-holder.first {
+    margin-top: 45px; }
 
 .signup {
   position: absolute;
@@ -8172,6 +8183,7 @@ body {
   top: 15px;
   width: 40px;
   height: 40px;
+  z-index: 10;
   line-height: 40px;
   color: #333;
   font-size: 30px;
@@ -8198,6 +8210,11 @@ body {
     content: '\f4c0'; }
   .nav-icon.profile-icon:before {
     content: '\f3a0'; }
+  .nav-icon.close-icon {
+    font-size: 40px;
+    line-height: 35px; }
+    .nav-icon.close-icon:before {
+      content: '\f404'; }
   .nav-icon.food-icon:before {
     content: '\f27a';
     position: absolute;
@@ -8280,6 +8297,8 @@ body {
       margin-bottom: 0; }
       .cards .card-holder.food .card-image:before, .cards .card-holder.transaction .card-image:before {
         content: 'No photo available'; }
+    .cards .card-holder.payment {
+      height: 226px; }
 
 .dish-photo {
   width: inherit;

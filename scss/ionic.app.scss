@@ -506,6 +506,12 @@ body {
 	@include full;
 	@include scrollFix;
 	-webkit-transition: -webkit-transform 0.2s ease-in-out;
+	.swiper-container {
+		@include full;
+		.swiper-wrapper {
+			@include full;
+		}
+	}
 }
 .overlay {
 	height: 100%;
@@ -525,7 +531,7 @@ body {
 			background-color: rgba(255,255,255,0.7);
 		}
 	}
-	&.bottom {
+	&.middle {
 		background-color:  transparent;
 	}
 }

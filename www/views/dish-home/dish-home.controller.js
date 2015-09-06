@@ -5,6 +5,15 @@
 
 		$scope.currentUser = Auth.user;
 
+		//We use this to populate the swiper screens
+		$scope.screens = [{
+			template: 'dish-cook/dish-cook.html'
+		}, {
+			template: 'dish-food/dish-food.html'
+		}, {
+			template: 'dish-profile/dish-profile.html'
+		}];
+
 		$scope.getCardWidth = function(food, index) {
 			return window.innerWidth;
 		}

@@ -8149,6 +8149,18 @@ body {
     padding-bottom: 100px; }
     .overlays .list:last-child {
       margin-bottom: 20px; }
+  .overlays .swiper-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0; }
+    .overlays .swiper-container .swiper-wrapper {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0; }
 
 .overlay {
   height: 100%;
@@ -8164,7 +8176,7 @@ body {
       position: absolute;
       top: -100%;
       background-color: rgba(255, 255, 255, 0.7); }
-  .overlay.bottom {
+  .overlay.middle {
     background-color: transparent; }
 
 .title {

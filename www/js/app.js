@@ -4,6 +4,7 @@ angular.module('dish', [
   'ngStorage',
   'ngCordova',
   'ngMessages',
+  'ksSwiper',
   'firebase',
   'templates',
   'dish.bootstrap',

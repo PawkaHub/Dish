@@ -9,6 +9,7 @@
 
 		<!-- build:css dist_css/styles.css -->
 		<link href="css/ionic.app.css" rel="stylesheet">
+    <link src="lib/swiper/dist/css/swiper.min.css" rel="stylesheet">
 		<!-- endbuild -->
 
 		<!-- ionic/angularjs js -->
@@ -115,6 +116,8 @@
 		<script src="lib/firebase/firebase.js"></script>
 		<script src="lib/angularfire/dist/angularfire.min.js"></script>
 		<script src="lib/angular-messages/angular-messages.min.js"></script>
+    <script src="lib/swiper/dist/js/swiper.min.js"></script>
+    <script src="lib/angular-swiper/dist/angular-swiper.js"></script>
 
     <!-- Compiled Templates -->
     <script src="js/templates.js"></script>
@@ -124,10 +127,5 @@
 
 	<body ng-app="dish" ng-controller="dishBootstrapController">
     <ng-include src="&apos;dish-home/dish-home.html&apos;"></ng-include>
-    <!--<dish-slider>
-      <dish-slide template="dish-profile/dish-profile.html"></dish-slide>
-      <dish-slide template="dish-home/dish-home.html"></dish-slide>
-      <dish-slide template="dish-transactions/dish-transactions.html"></dish-slide>
-    </dish-slider>-->
 	</body>
 </html>

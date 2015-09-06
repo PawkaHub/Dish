@@ -1,10 +1,7 @@
 <div class="home" ng-controller="dishHomeController">
-  <dish-tray class="overlays">
-    <div class="overlay top">
-      <ng-include src="&apos;dish-cook/dish-cook.html&apos;"></ng-include>
-    </div>
-    <div class="overlay bottom">
-      <ng-include src="&apos;dish-food/dish-food.html&apos;"></ng-include>
-    </div>
-  </dish-tray>
+	<ks-swiper-container class="overlays" initial-slide="1" loop="false" show-nav-buttons="false" slides-per-view="1" pagination-clickable="false" direction="vertical">
+    <ks-swiper-slide class="swiper-slide overlay" ng-repeat="screen in screens">
+    	<ng-include src="screen.template"></ng-include>
+    </ks-swiper-slide>
+	</ks-swiper-container>
 </div>

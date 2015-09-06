@@ -9,6 +9,7 @@
     "angular-animate": "1.4.3"
   },
   "dependencies": {
-    "ngCordova": "~0.1.20-alpha"
+    "ngCordova": "~0.1.20-alpha",
+    "swiper": "~3.1.2"
   }
 }

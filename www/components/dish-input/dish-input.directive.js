@@ -15,6 +15,12 @@
 				scope.inputName = attrs.ngModel.split('.').pop();
 				scope.placeholder = attrs.placeholder;
 				scope.id = attrs.id;
+				console.log('attrs', attrs.readonly);
+				if (attrs.readonly) {
+					scope.readonly = true;
+				} else {
+					scope.readonly = false;
+				}
 
 				//Based on the input name, assign the proper field type accordingly if it's a password or email
 				switch (scope.inputName) {
@@ -43,7 +49,7 @@
 						scope.minLength = 0;
 				}
 			},
-			template: '<label class="item item-input dish-input"><input id="{{id}}" name="{{inputName}}" type="{{inputType}}" autocomplete="off" autocorrect="off" autocapitalize="off" required="true" ng-model="ngModel" pattern="{{pattern}}" ng-minlength="minLength" placeholder="{{placeholder}}"><i class="error icon ion-ios-close assertive"></i></label>'
+			template: '<label class="item item-input dish-input"><input id="{{id}}" name="{{inputName}}" type="{{inputType}}" autocomplete="off" autocorrect="off" autocapitalize="off" required="true" ng-model="ngModel" pattern="{{pattern}}" ng-minlength="minLength" placeholder="{{placeholder}}" ng-readonly="readonly"><i class="error icon ion-ios-close assertive"></i></label>'
 		};
 	}
 

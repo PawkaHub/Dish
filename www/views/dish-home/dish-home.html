@@ -1,5 +1,5 @@
 <div class="home" ng-controller="dishHomeController">
-	<ks-swiper-container class="overlays" initial-slide="1" loop="false" show-nav-buttons="false" slides-per-view="1" pagination-clickable="false" direction="vertical">
+	<ks-swiper-container swiper="swiper" class="overlays" initial-slide="1" loop="false" show-nav-buttons="false" slides-per-view="1" pagination-clickable="false" direction="vertical">
     <ks-swiper-slide class="swiper-slide overlay" ng-repeat="screen in screens">
     	<ng-include src="screen.template"></ng-include>
     </ks-swiper-slide>

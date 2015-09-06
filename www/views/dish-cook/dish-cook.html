@@ -1,5 +1,7 @@
 <div ng-controller="dishCookController">
+  <div class="nav-icon left profile-icon" ng-click="toProfile()"></div>
 	<div class="title">Cook</div>
+  <div class="nav-icon right food-icon" ng-click="toFood()"></div>
 	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
     <div class="card-holder" collection-repeat="recipe in recipes" item-width="getCardWidth(recipe, $index)" item-height="getCardHeight(recipe, $index)">
       <div class="card">

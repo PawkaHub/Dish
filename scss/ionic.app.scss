@@ -362,35 +362,6 @@ body {
 	}*/
 }
 
-//App Slide
-.appSlider {
-	@include full;
-	.bar-header {
-		background-color: $brandTint;
-		border: none;
-		background-image: none;
-		.title, .button {
-			color: #fff;
-		}
-	}
-	.appSlide {
-		overflow: hidden;
-		&.center {
-			@include cover('../img/splash.jpg');
-			@include dots;
-			.scroll-content {
-				margin: 0;
-			}
-			.title {
-				font-size: 24px;
-			}
-			.bar-header {
-				background-color: transparent;
-			}
-		}
-	}
-}
-
 .pane {
 	background-color: transparent;
 }
@@ -547,8 +518,11 @@ body {
 .title {
 	position: absolute;
 	top: 0;
-	right: 0;
-	left: 0;
+	right: 50px;
+	left: 50px;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
 	height: 60px;
 	line-height: 60px;
 	text-align: center;
@@ -557,6 +531,69 @@ body {
 	font-family: visby;
 	text-transform: uppercase;
 	letter-spacing: 2px;
+}
+.nav-icon {
+	position: absolute;
+	top: 15px;
+	width: 40px;
+	height: 40px;
+	line-height: 40px;
+	color: #333;
+	font-size: 30px;
+	opacity: 0.5;
+	&.left {
+		left: 15px;
+		text-align: left;
+	}
+	&.right {
+		right: 15px;
+		text-align: right;
+	}
+	&:before {
+		content: '';
+		font-family: 'ionicons';
+		width: inherit;
+		height: inherit;
+	}
+	&:after {
+		content: '';
+		font-family: 'ionicons';
+		width: inherit;
+		height: inherit;
+		position: absolute;
+		top: 0;
+	}
+	&.cook-icon {
+		&:before {
+			content: '\f4c0';
+		}
+	}
+	&.profile-icon {
+		&:before {
+			content: '\f3a0';
+		}
+	}
+	&.food-icon {
+		&:before {
+			content: '\f27a';
+			position: absolute;
+			left: -12px;
+		}
+		&:after {
+			content: '\f297';
+			left: -2px;
+		}
+		&.left {
+			&:before {
+				left: auto;
+				right: -2px;
+			}
+			&:after {
+				left: auto;
+				right: -16px;
+			}
+		}
+	}
 }
 .cards {
 	@include full;
@@ -597,6 +634,14 @@ body {
 					content: 'Please add a photo';
 					width: inherit;
 					height: inherit;
+				}
+			}
+		}
+		&.food, &.transaction {
+			.card-image {
+				margin-bottom: 0;
+				&:before {
+					content: 'No photo available';
 				}
 			}
 		}
@@ -686,6 +731,9 @@ body {
 		&.item-input {
 			input {
 				padding: 0;
+				&[readonly] {
+					background-color: transparent;
+				}
 				&::-webkit-input-placeholder {
 					color: rgba(0,0,0,0.3);
 				}

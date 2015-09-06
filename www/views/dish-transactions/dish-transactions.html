@@ -1,14 +1,22 @@
 <div class="transactions" ng-controller="dishTransactionsController">
+	<div class="nav-icon left food-icon" ng-click="toFood()"></div>
+	<div class="title">{{currentUser.profile.username}}</div>
+	<div class="nav-icon right cook-icon" ng-click="toCook()"></div>
   <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
-		<div class="card-holder" collection-repeat="transaction in transactions" item-width="getCardWidth(transaction, $index)" item-height="getCardHeight(transaction, $index)">
-			<div class="card">
-				<dish-photo class="card-image" ng-model="transaction.photo"></dish-photo>
-				<dish-input ng-model="transaction.name" placeholder="Name"></dish-input>
-				<dish-input ng-model="transaction.ingredients" placeholder="Ingredients"></dish-input>
-				<dish-input class="half" ng-model="transaction.portions" placeholder="Portions"></dish-input>
-				<dish-input class="half" ng-model="transaction.price" placeholder="Price"></dish-input>
-				<dish-button text="Post Meal"></dish-button>
+  	<div collection-repeat="transaction in transactions" item-width="getCardWidth(transaction, $index)" item-height="getCardHeight(transaction, $index)">
+  		<div ng-if="$index === 0" class="card-holder profile">
+  			<ng-include src="&apos;dish-profile/dish-profile.html&apos;"></ng-include>
+  		</div>
+  		<div class="card-holder transaction">
+				<div class="card">
+					<div class="card-image" style="background-image:url({{transaction.photo}});"></div>
+	        <dish-input ng-model="transaction.name" placeholder="Name" readonly="true"></dish-input>
+	        <dish-input ng-model="transaction.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
+	        <dish-input class="half" ng-model="transaction.portions" placeholder="Portions" readonly="true"></dish-input>
+	        <dish-input class="half" ng-model="transaction.price" placeholder="Price" readonly="true"></dish-input>
+	        <dish-button text="View Meal"></dish-button>
+				</div>
 			</div>
-		</div>
+  	</div>
 	</ion-scroll>
 </div>

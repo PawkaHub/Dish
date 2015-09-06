@@ -7970,42 +7970,6 @@ body {
 		background-color: $brandTint;
 	}*/ }
 
-.appSlider {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0; }
-  .appSlider .bar-header {
-    background-color: #2980b9;
-    border: none;
-    background-image: none; }
-    .appSlider .bar-header .title, .appSlider .bar-header .button {
-      color: #fff; }
-  .appSlider .appSlide {
-    overflow: hidden; }
-    .appSlider .appSlide.center {
-      background-image: url('../img/splash.jpg');
-      background-size: cover;
-      background-repeat: no-repeat;
-      background-position: 50% 50%; }
-      .appSlider .appSlide.center:before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        background-color: black;
-        pointer-events: none;
-        opacity: 0.3; }
-      .appSlider .appSlide.center .scroll-content {
-        margin: 0; }
-      .appSlider .appSlide.center .title {
-        font-size: 24px; }
-      .appSlider .appSlide.center .bar-header {
-        background-color: transparent; }
-
 .pane {
   background-color: transparent; }
 
@@ -8189,8 +8153,11 @@ body {
 .title {
   position: absolute;
   top: 0;
-  right: 0;
-  left: 0;
+  right: 50px;
+  left: 50px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
   height: 60px;
   line-height: 60px;
   text-align: center;
@@ -8199,6 +8166,51 @@ body {
   font-family: visby;
   text-transform: uppercase;
   letter-spacing: 2px; }
+
+.nav-icon {
+  position: absolute;
+  top: 15px;
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  color: #333;
+  font-size: 30px;
+  opacity: 0.5; }
+  .nav-icon.left {
+    left: 15px;
+    text-align: left; }
+  .nav-icon.right {
+    right: 15px;
+    text-align: right; }
+  .nav-icon:before {
+    content: '';
+    font-family: 'ionicons';
+    width: inherit;
+    height: inherit; }
+  .nav-icon:after {
+    content: '';
+    font-family: 'ionicons';
+    width: inherit;
+    height: inherit;
+    position: absolute;
+    top: 0; }
+  .nav-icon.cook-icon:before {
+    content: '\f4c0'; }
+  .nav-icon.profile-icon:before {
+    content: '\f3a0'; }
+  .nav-icon.food-icon:before {
+    content: '\f27a';
+    position: absolute;
+    left: -12px; }
+  .nav-icon.food-icon:after {
+    content: '\f297';
+    left: -2px; }
+  .nav-icon.food-icon.left:before {
+    left: auto;
+    right: -2px; }
+  .nav-icon.food-icon.left:after {
+    left: auto;
+    right: -16px; }
 
 .cards {
   position: absolute;
@@ -8255,6 +8267,10 @@ body {
           content: 'Please add a photo';
           width: inherit;
           height: inherit; }
+    .cards .card-holder.food .card-image, .cards .card-holder.transaction .card-image {
+      margin-bottom: 0; }
+      .cards .card-holder.food .card-image:before, .cards .card-holder.transaction .card-image:before {
+        content: 'No photo available'; }
 
 .dish-photo {
   width: inherit;
@@ -8329,6 +8345,8 @@ body {
     right: 2px; }
   .dish-input.item.item-input input {
     padding: 0; }
+    .dish-input.item.item-input input[readonly] {
+      background-color: transparent; }
     .dish-input.item.item-input input::-webkit-input-placeholder {
       color: rgba(0, 0, 0, 0.3); }
     .dish-input.item.item-input input.ng-dirty.ng-invalid + .error {

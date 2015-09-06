@@ -1,6 +1,4 @@
-<div class="profile" ng-controller="dishProfileController">
-	<div class="title">{{currentUser.profile.username}}</div>
-	<div>User info will go here as a first card</div>
-	<button ng-click="logout()" class="button button-clear button-positive">Logout</button>
-	<ng-include src="&apos;dish-transactions/dish-transactions.html&apos;"></ng-include>
+<div class="card" ng-controller="dishProfileController">
+	<div class="card-image" style="background-image:url({{currentUser.profile.photo}});"></div>
+	<dish-button type="assertive" text="Logout" ng-click="logout()"></dish-button>
 </div>

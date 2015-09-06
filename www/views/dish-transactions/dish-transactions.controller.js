@@ -3,6 +3,8 @@
 
 	function DishTransactionsController($scope, $log) {
 
+		$scope.transactions = [{}, {}, {}];
+
 		$scope.transaction = function() {
 			$log.log('transaction');
 		};

@@ -1,4 +1,3 @@
-'Use Strict';
 angular.module('dish', [
   'ionic',
   'ngStorage',

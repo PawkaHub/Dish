@@ -17,21 +17,11 @@
 				var options = [];
 				var message = {};
 				if (navigator.camera) {
-					var imageOptions = {
-						quality: 50,
-						destinationType: Camera.DestinationType.DATA_URL,
-						sourceType: Camera.PictureSourceType.CAMERA,
-						allowEdit: false,
-						targetWidth: 800,
-						targetHeight: 800,
-						encodingType: Camera.EncodingType.JPEG,
-						popoverOptions: CameraPopoverOptions,
-						saveToPhotoAlbum: false
-					};
+					var imageOptions;
 				}
 
 				_self.openPicker = function() {
-					console.log('DishPhoto', $scope.ngModel, $scope.type);
+					console.log('DishPhoto', $scope.ngModel, $scope.type, imageOptions);
 					options[0] = {
 						text: 'Choose from Library'
 					};
@@ -41,11 +31,33 @@
 					dishSheetService.show(options).then(function(button) {
 						if (button === 0) {
 							console.log('Take from library');
-							imageOptions.sourceType = Camera.PictureSourceType.PHOTOLIBRARY;
+							imageOptions = {
+								quality: 50,
+								destinationType: Camera.DestinationType.DATA_URL,
+								sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
+								allowEdit: false,
+								targetWidth: 800,
+								targetHeight: 800,
+								encodingType: Camera.EncodingType.JPEG,
+								popoverOptions: CameraPopoverOptions,
+								saveToPhotoAlbum: false
+							};
+							//imageOptions.sourceType = Camera.PictureSourceType.PHOTOLIBRARY;
 						}
 						if (button === 1) {
 							console.log('Take photo');
-							imageOptions.sourceType = Camera.PictureSourceType.CAMERA;
+							imageOptions = {
+								quality: 50,
+								destinationType: Camera.DestinationType.DATA_URL,
+								sourceType: Camera.PictureSourceType.CAMERA,
+								allowEdit: false,
+								targetWidth: 800,
+								targetHeight: 800,
+								encodingType: Camera.EncodingType.JPEG,
+								popoverOptions: CameraPopoverOptions,
+								saveToPhotoAlbum: false
+							};
+							//imageOptions.sourceType = Camera.PictureSourceType.CAMERA;
 						}
 						$cordovaCamera.getPicture(imageOptions).then(function(imageURI) {
 							_self.photo = "data:image/jpeg;base64," + imageURI;

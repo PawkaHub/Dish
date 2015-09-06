@@ -5,7 +5,7 @@
 
 		$scope.currentUser = Auth.user;
 
-		//We use this to populate the swiper screens
+		//We use this to populate the swiper screens, as it only fires when it's got an ng-repeat included with it
 		$scope.screens = [{
 			template: 'dish-cook/dish-cook.html'
 		}, {

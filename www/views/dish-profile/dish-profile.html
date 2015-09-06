@@ -1,5 +1,6 @@
-<ion-content class="profile" ng-controller="dishProfileController">
-  <h1>Profile!</h1>
-  <button ng-click="profile()" class="button button-clear button-positive">Profile!</button>
-   <button ng-click="logout()" class="button button-clear button-positive">Logout</button>
-</ion-content>
+<div class="profile" ng-controller="dishProfileController">
+	<div class="title">{{currentUser.profile.username}}</div>
+	<div>User info will go here as a first card</div>
+	<button ng-click="logout()" class="button button-clear button-positive">Logout</button>
+	<ng-include src="&apos;dish-transactions/dish-transactions.html&apos;"></ng-include>
+</div>

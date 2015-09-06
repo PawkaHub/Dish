@@ -1,3 +1,14 @@
-<ion-content class="transactions" ng-controller="dishTransactionsController">
-  <h1 ng-click="transaction()">Transactions!</h1>
-</ion-content>
+<div class="transactions" ng-controller="dishTransactionsController">
+  <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
+		<div class="card-holder" collection-repeat="transaction in transactions" item-width="getCardWidth(transaction, $index)" item-height="getCardHeight(transaction, $index)">
+			<div class="card">
+				<dish-photo class="card-image" ng-model="transaction.photo"></dish-photo>
+				<dish-input ng-model="transaction.name" placeholder="Name"></dish-input>
+				<dish-input ng-model="transaction.ingredients" placeholder="Ingredients"></dish-input>
+				<dish-input class="half" ng-model="transaction.portions" placeholder="Portions"></dish-input>
+				<dish-input class="half" ng-model="transaction.price" placeholder="Price"></dish-input>
+				<dish-button text="Post Meal"></dish-button>
+			</div>
+		</div>
+	</ion-scroll>
+</div>

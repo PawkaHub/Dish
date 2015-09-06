@@ -495,13 +495,20 @@ body {
 	font-size: smaller;
 }
 
-//Overlay
+//Home
 .home {
 	@include full;
 	z-index: 9;
 	background-color: $secondTint;
 	//@include scrollFix;
 }
+
+//Transactions
+.transactions {
+	@include full;
+}
+
+//Overlay
 .overlays {
 	@include full;
 	@include scrollFix;
@@ -603,6 +610,9 @@ body {
 	.uploaded-photo {
 		width: inherit;
 		height: inherit;
+		position: absolute;
+		top: 0;
+		@include cover('');
 	}
 }
 .add-photo {

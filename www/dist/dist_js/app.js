@@ -12,20 +12,23 @@ angular.module('dish.bootstrap')
 (function() {
 	'use strict';
 
-	function DishBootstrapController($scope, $ionicPlatform, $log, Auth, dishModalService) {
+	function DishBootstrapController($scope, $ionicPlatform, $timeout, $log, Auth, dishModalService) {
 
 		$ionicPlatform.ready(function() {
-			if (Auth.signedIn() === false) {
-				$log.log('show shit');
-				dishModalService.open($scope, 'signup');
-			} else {
-				console.log('Auth', Auth.user);
-				$scope.currentUser = Auth.user;
-			}
+			$timeout(function() {
+				if (Auth.signedIn() === false) {
+					$log.log('show shit');
+					dishModalService.open($scope, 'signup');
+				} else {
+					console.log('Auth', Auth.user);
+					$scope.currentUser = Auth.user;
+					dishModalService.close();
+				}
+			});
 		});
 	}
 
-	DishBootstrapController.$inject = ['$scope', '$ionicPlatform', '$log', 'Auth', 'dishModalService'];
+	DishBootstrapController.$inject = ['$scope', '$ionicPlatform', '$timeout', '$log', 'Auth', 'dishModalService'];
 
 	angular.module('dish.bootstrap')
 		.controller('dishBootstrapController', DishBootstrapController);
@@ -209,15 +212,15 @@ angular.module('dish.bootstrap')
 						scope.inputType = 'password';
 						scope.minLength = 8;
 						break;
-					case 'phone':
+					case 'price':
 						scope.inputType = 'number';
-						scope.minLength = 9;
+						//scope.minLength = 9;
 						scope.pattern = '[0-9]*';
 						break;
-					case 'experience':
+					case 'portions':
 						scope.inputType = 'number';
-						scope.minLength = 0;
-						scope.maxLength = 3;
+						//scope.minLength = 0;
+						//scope.maxLength = 3;
 						scope.pattern = '[0-9]*';
 						break;
 					default:
@@ -233,6 +236,32 @@ angular.module('dish.bootstrap')
 
 	angular.module('dish.input')
 		.directive('dishInput', DishInputDirective);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.button', []);
+})();
+(function() {
+	'use strict';
+
+	function DishButtonDirective($window, $q) {
+		var invalid;
+		return {
+			restrict: 'AE',
+			replace: true,
+			link: function(scope, elm, attrs, ctrl) {
+				//Get the last section of the model and use that as the input name
+				scope.buttonText = attrs.text;
+			},
+			template: '<button class="dish-button button button-full button-positive">{{buttonText}}</button>'
+		};
+	}
+
+	DishButtonDirective.$inject = ['$window', '$q'];
+
+	angular.module('dish.button')
+		.directive('dishButton', DishButtonDirective);
 })();
 (function() {
 	'use strict';
@@ -390,6 +419,8 @@ angular.module('dish.bootstrap')
 						}
 					});
 				});
+
+				//dishSliderService.enableSlide(false);
 			},
 			controller: ['$scope', function($scope) {
 				$scope.slides = [];
@@ -434,6 +465,267 @@ angular.module('dish.bootstrap')
 		.directive('dishSlide', DishSlideDirective);
 })();
 (function() {
+  'use strict';
+
+  angular.module('dish.tray', []);
+})();
+(function() {
+  'use strict';
+
+  function DishTrayFactory($scope) {
+    return {
+      transitionUp: function() {
+        console.log('up');
+        draggableTray.transitionUp();
+      },
+      transitionDown: function() {
+        console.log('down');
+        draggableTray.transitionDown();
+      },
+      transitionHide: function() {
+        console.log('hide');
+        draggableTray.transitionHide();
+      }
+    }
+  };
+
+  DishTrayFactory.$inject = ['$scope'];
+
+  angular.module('dish.tray')
+    .factory('$dishTrayDelegate', DishTrayFactory);
+})();
+(function(ionic) {
+  'use strict';
+
+  function DishTrayDirective($ionicScrollDelegate) {
+    // Get transform origin poly
+    var d = document.createElement('div');
+    var transformKeys = ['webkitTransformOrigin', 'transform-origin', '-webkit-transform-origin', 'webkit-transform-origin',
+      '-moz-transform-origin', 'moz-transform-origin', 'MozTransformOrigin', 'mozTransformOrigin'
+    ];
+
+    var TRANSFORM_ORIGIN = 'webkitTransformOrigin';
+    for (var i = 0; i < transformKeys.length; i++) {
+      if (d.style[transformKeys[i]] !== undefined) {
+        TRANSFORM_ORIGIN = transformKeys[i];
+        break;
+      }
+    }
+
+    var transitionKeys = ['webkitTransition', 'transition', '-webkit-transition', 'webkit-transition',
+      '-moz-transition', 'moz-transition', 'MozTransition', 'mozTransition'
+    ];
+    var TRANSITION = 'webkitTransition';
+    for (var i = 0; i < transitionKeys.length; i++) {
+      if (d.style[transitionKeys[i]] !== undefined) {
+        TRANSITION = transitionKeys[i];
+        break;
+      }
+    }
+
+    var SwipeableCardView = ionic.views.View.inherit({
+      /**
+       * Initialize a card with the given options.
+       */
+      initialize: function(opts) {
+        opts = ionic.extend({}, opts);
+
+        ionic.extend(this, opts);
+
+        this.el = opts.el;
+
+        this.openY = opts.openY;
+
+        this.closedY = opts.closedY;
+
+        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0,' + (this.openY) + 'px, 0)';
+
+        this.open = false;
+
+        this.bindEvents();
+      },
+
+      /**
+       * Disable transitions on the card (for when dragging)
+       */
+      disableTransition: function(animationClass) {
+        this.el.classList.remove(animationClass);
+      },
+
+      /**
+       * Fly the tray up or animate back into resting position.
+       */
+      transitionOut: function(e, direction) {
+        $ionicScrollDelegate.freezeScroll(false);
+        var self = this;
+
+        //console.log('drag', this.y);
+
+        //Bounce back threshold
+        if (this.y < -400) {
+          console.log('FLY UP', this.y);
+          this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
+          this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0,' + (this.openY) + 'px, 0)';
+          this.open = true;
+          setTimeout(function() {
+            self.el.style[TRANSITION] = 'none';
+          }, 200);
+        } else {
+          console.log('FLY DOWN', this.y);
+          // Fly out
+          this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
+          this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0,' + (this.closedY) + 'px, 0)';
+          this.open = false;
+          setTimeout(function() {
+            self.el.style[TRANSITION] = 'none';
+          }, 200);
+        }
+      },
+
+      transitionUp: function(e) {
+        $ionicScrollDelegate.freezeScroll(false);
+        console.log('transitionUp');
+        var self = this;
+
+        this.swiped = true;
+        this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
+        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0,' + (this.openY) + 'px, 0)';
+        this.open = true;
+        setTimeout(function() {
+          self.el.style[TRANSITION] = 'none';
+          this.swiped = false;
+        }, 200);
+      },
+
+      transitionDown: function(e) {
+        $ionicScrollDelegate.freezeScroll(false);
+        console.log('transitionDown');
+        var self = this;
+
+        this.el.style[TRANSITION] = '-webkit-transform 0.2s ease-in-out';
+        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0,' + (this.closedY) + 'px, 0)';
+        this.open = false;
+        setTimeout(function() {
+          self.el.style[TRANSITION] = 'none';
+          this.swiped = false;
+        }, 200);
+      },
+
+      /**
+       * Bind drag events on the card.
+       */
+      bindEvents: function() {
+        var self = this;
+        ionic.onGesture('dragstart', function(e) {
+          ionic.requestAnimationFrame(function() {
+            self._doDragStart(e)
+          });
+        }, this.el);
+
+        ionic.onGesture('dragup', function(e) {
+          ionic.requestAnimationFrame(function() {
+            self._doDrag(e)
+          });
+        }, this.el);
+
+        ionic.onGesture('dragdown', function(e) {
+          ionic.requestAnimationFrame(function() {
+            self._doDrag(e)
+          });
+        }, this.el);
+
+        ionic.onGesture('dragend', function(e) {
+          ionic.requestAnimationFrame(function() {
+            if (self.swiped) {
+              return false;
+            } else {
+              self._doDragEnd(e);
+            }
+          });
+        }, this.el);
+
+        ionic.onGesture('swipeup', function(e) {
+          ionic.requestAnimationFrame(function() {
+            self._doSwipeUp(e)
+          });
+        }, this.el);
+
+        ionic.onGesture('swipedown', function(e) {
+          ionic.requestAnimationFrame(function() {
+            self._doSwipeDown(e)
+          });
+        }, this.el);
+      },
+
+      _doDragStart: function(e) {
+        //$ionicScrollDelegate.freezeScroll(true);
+        var width = this.el.offsetWidth;
+        var point = window.innerWidth / 2 + this.rotationDirection * (width / 2)
+        var distance = Math.abs(point - e.gesture.touches[0].pageX); // - window.innerWidth/2);
+        //console.log('dragStart',distance);
+
+        this.touchDistance = distance * 10;
+
+      },
+
+      _doDrag: function(e) {
+        $ionicScrollDelegate.freezeScroll(true);
+        var o = e.gesture.deltaY / 3;
+
+        /*if (this.open) {
+          this.y = this.openY + (e.gesture.deltaY * 0.4);
+        } else {
+          this.y = this.closedY + (e.gesture.deltaY * 0.50);
+        }*/
+
+        if (this.open) {
+          this.y = this.openY + (e.gesture.deltaY * 0.75);
+        } else {
+          this.y = this.closedY + (e.gesture.deltaY * 0.75);
+        }
+
+        this.swiped = false;
+
+        console.log('drag', this.y);
+
+        this.el.style[ionic.CSS.TRANSFORM] = 'translate3d(0, ' + this.y + 'px, 0)';
+      },
+      _doDragEnd: function(e, direction) {
+        this.transitionOut(e, direction);
+      },
+      _doSwipeUp: function(e, direction) {
+        this.transitionUp(e, direction);
+      },
+      _doSwipeDown: function(e, direction) {
+        this.transitionDown(e, direction);
+      }
+    });
+
+    return {
+      restrict: 'E',
+      template: '<div class="dish-tray" ng-transclude></div>',
+      replace: true,
+      transclude: true,
+      compile: function(element, attr) {
+        return function($scope, $element, $attr, swipeCards) {
+          var el = $element[0];
+          // Instantiate our card view - lazy hack to get events going
+          window.draggableTray = new SwipeableCardView({
+            el: el,
+            openY: -window.innerHeight,
+            closedY: 0
+          });
+        }
+      }
+    }
+  };
+
+  DishTrayDirective.$inject = ['$ionicScrollDelegate'];
+
+  angular.module('dish.tray')
+    .directive('dishTray', DishTrayDirective);
+})(window.ionic);
+(function() {
 	'use strict';
 
 	angular.module('dish.modal', []);
@@ -460,6 +752,7 @@ angular.module('dish.bootstrap')
 		};
 
 		_self.close = function close() {
+			if (!dishModal) return;
 			dishModal.hide();
 			dishModal.remove();
 		};
@@ -534,7 +827,7 @@ angular.module('dish.bootstrap')
 					});
 				};
 			}],
-			template: '<div class="photo" ng-click="openPicker()"><div class="uploaded-photo" style="background-image:url({{croppedPhoto}});"></div></div>'
+			template: '<div><div class="dish-photo"><div class="uploaded-photo" style="background-image:url({{photo}});"></div></div><div class="add-photo" ng-click="openPicker()"></div></div>'
 		};
 	}
 
@@ -941,7 +1234,7 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
   'use strict';
 
-  function DishForgotController($scope, Auth) {
+  function DishForgotController($scope, $log, Auth, dishSliderService) {
 
     $scope.resetPassword = function(user) {
       $log.log('oh', user);
@@ -953,9 +1246,13 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
         });
       }
     };
+
+    $scope.toLogin = function() {
+      dishSliderService.slide(1);
+    };
   }
 
-  DishForgotController.$inject = ['$scope'];
+  DishForgotController.$inject = ['$scope', '$log', 'Auth', 'dishSliderService'];
 
   angular.module('dish.forgot')
     .controller('dishForgotController', DishForgotController);
@@ -968,7 +1265,9 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
 	'use strict';
 
-	function DishLoginController($scope, $log, $firebaseObject, Utils, Auth) {
+	function DishLoginController($scope, $log, $localStorage, $firebaseObject, Utils, Auth, FURL, dishSliderService, dishModalService) {
+		var ref = new Firebase(FURL);
+		var userkey = '';
 
 		$scope.login = function(user) {
 			$log.log('Logging In', user);
@@ -995,7 +1294,7 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 								$scope.currentUser = Auth.user;
 
 								Utils.hide();
-								$scope.closeModal('login');
+								dishModalService.close();
 							})
 							.catch(function(error) {
 								console.error('Error:', error);
@@ -1008,9 +1307,17 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 				});
 			}
 		};
+
+		$scope.toSignup = function() {
+			dishSliderService.slide(0);
+		};
+
+		$scope.toForgot = function() {
+			dishSliderService.slide(2);
+		}
 	}
 
-	DishLoginController.$inject = ['$scope', '$log', '$firebaseObject', 'Utils', 'Auth'];
+	DishLoginController.$inject = ['$scope', '$log', '$localStorage', '$firebaseObject', 'Utils', 'Auth', 'FURL', 'dishSliderService', 'dishModalService'];
 
 	angular.module('dish.login')
 		.controller('dishLoginController', DishLoginController);
@@ -1023,7 +1330,15 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
   'use strict';
 
-  function DishSignupController($scope, $log, Auth, Utils) {
+  function DishSignupController($scope, $log, $controller, Auth, Utils, dishSliderService) {
+
+    //This allows us to reference the loginController from within signup
+    var dishLoginController = $scope.$new(); //You need to supply a scope while instantiating.
+    //Provide the scope, you can also do $scope.$new(true) in order to create an isolated scope.
+    //In this case it is the child scope of this scope.
+    $controller('dishLoginController', {
+      $scope: dishLoginController
+    });
 
     $scope.signup = function(user) {
       $log.log('signup', user);
@@ -1031,16 +1346,20 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
         Utils.show();
         Auth.signup(user).then(function(authData) {
           $log.log('User successfully created:', authData);
-          $scope.login(user);
+          dishLoginController.login(user);
         }, function(err) {
           Utils.hide();
           Utils.errMessage(err);
         });
       }
     };
+
+    $scope.toLogin = function() {
+      dishSliderService.slide(1);
+    };
   }
 
-  DishSignupController.$inject = ['$scope', '$log', 'Auth', 'Utils'];
+  DishSignupController.$inject = ['$scope', '$log', '$controller', 'Auth', 'Utils', 'dishSliderService'];
 
   angular.module('dish.signup')
     .controller('dishSignupController', DishSignupController);
@@ -1053,17 +1372,68 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
 	'use strict';
 
-	function DishHomeController($scope, $log) {
+	function DishHomeController($scope, $log, Auth) {
 
-		$scope.home = function() {
-			$log.log('home');
-		};
+		$scope.currentUser = Auth.user;
+
+		$scope.getCardWidth = function(food, index) {
+			return window.innerWidth;
+		}
+
+		$scope.getCardHeight = function(food, index) {
+			return window.innerHeight;
+		}
+
 	}
 
-	DishHomeController.$inject = ['$scope', '$log'];
+	DishHomeController.$inject = ['$scope', '$log', 'Auth'];
 
 	angular.module('dish.home')
 		.controller('dishHomeController', DishHomeController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.food', []);
+})();
+(function() {
+	'use strict';
+
+	function DishFoodController($scope, $log) {
+		$scope.foods = [{}, {}, {}, {}, {}, {}];
+
+		$scope.food = function() {
+			$log.log('food');
+		};
+
+	}
+
+	DishFoodController.$inject = ['$scope', '$log'];
+
+	angular.module('dish.forgot')
+		.controller('dishFoodController', DishFoodController);
+})();
+(function() {
+	'use strict';
+
+	angular.module('dish.cook', []);
+})();
+(function() {
+  'use strict';
+
+  function DishCookController($scope, $log) {
+    $scope.recipes = [{}, {}, {}, {}, {}, {}];
+
+    $scope.cook = function() {
+      $log.log('cook');
+    };
+
+  }
+
+  DishCookController.$inject = ['$scope', '$log'];
+
+  angular.module('dish.cook')
+    .controller('dishCookController', DishCookController);
 })();
 (function() {
 	'use strict';
@@ -1073,7 +1443,7 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
 	'use strict';
 
-	function DishProfileController($scope, $log, Auth) {
+	function DishProfileController($scope, $log, Auth, dishModalService) {
 
 		$scope.profile = function() {
 			$log.log('profile');
@@ -1082,10 +1452,11 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 		$scope.logout = function() {
 			$log.log('logout');
 			Auth.logout();
+			dishModalService.open($scope, 'signup');
 		}
 	}
 
-	DishProfileController.$inject = ['$scope', '$log', 'Auth'];
+	DishProfileController.$inject = ['$scope', '$log', 'Auth', 'dishModalService'];
 
 	angular.module('dish.profile')
 		.controller('dishProfileController', DishProfileController);
@@ -1409,10 +1780,12 @@ l?h.setClass(e,"ng-active","ng-inactive"):h.setClass(e,"ng-inactive","ng-active"
 k(e[0],a))?a.next=b.next:c.head=b.next;delete l[d];c.reRender()}}]}}]).directive("ngMessagesInclude",["$templateRequest","$document","$compile",function(h,q,m){return{restrict:"AE",require:"^^ngMessages",link:function(e,a,g){var k=g.ngMessagesInclude||g.src;h(k).then(function(c){m(c)(e,function(c){a.after(c);c=z(q[0].createComment(" ngMessagesInclude: "+k+" "));a.after(c);a.remove()})})}}}]).directive("ngMessage",v("AE")).directive("ngMessageExp",v("A"))})(window,window.angular);
 //# sourceMappingURL=angular-messages.min.js.map
 
-angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("dish-forgot/dish-forgot.html","<form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\" ng-controller=\"dishForgotController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n    Back to Login\n  </div>\n</form>");
-$templateCache.put("dish-home/dish-home.html","<ion-scroll class=\"home\" ng-controller=\"dishHomeController\" paging=\"true\" scrollbar-y=\"false\">\n  <div class=\"overlay top\">\n    <div class=\"overlay-title\">Cook</div>\n    <div class=\"food-card\">\n      <div class=\"food-image\"></div>\n      <dish-input ng-model=\"food.name\" placeholder=\"Food Name\"></dish-input>\n      <dish-photo ng-model=\"food.photo\"></dish-photo>\n    </div>\n  </div>\n  <div class=\"overlay bottom\" ng-click=\"home()\">Food</div>\n</ion-scroll>\n<!--<ion-content class=\"home\" ng-controller=\"HomeCtrl\" paging=\"true\" scrollbar-y=\"false\">\n	Food\n</ion-content>-->\n<!--<ng-include src=\"&apos;cook/cook.html&apos;\"></ng-include>-->");
-$templateCache.put("dish-login/dish-login.html","<form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\" ng-controller=\"dishLoginController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n    Signup\n  </div>\n</form>");
+angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("dish-cook/dish-cook.html","<div ng-controller=\"dishCookController\">\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"false\">\n    <div class=\"card-holder\" collection-repeat=\"recipe in recipes\" item-width=\"getCardWidth(recipe, $index)\" item-height=\"getCardHeight(recipe, $index)\">\n      <div class=\"card\">\n        <dish-photo class=\"card-image\" ng-model=\"recipe.photo\"></dish-photo>\n        <dish-input ng-model=\"recipe.name\" placeholder=\"Name\"></dish-input>\n        <dish-input ng-model=\"recipe.ingredients\" placeholder=\"Ingredients\"></dish-input>\n        <dish-input class=\"half\" ng-model=\"recipe.portions\" placeholder=\"Portions\"></dish-input>\n        <dish-input class=\"half\" ng-model=\"recipe.price\" placeholder=\"Price\"></dish-input>\n        <dish-button text=\"Post Meal\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
+$templateCache.put("dish-food/dish-food.html","<div ng-controller=\"dishFoodController\">\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"false\">\n    <div class=\"card-holder\" collection-repeat=\"food in foods\" item-width=\"getCardWidth(food, $index)\" item-height=\"getCardHeight(food, $index)\">\n      <div class=\"card\">\n        <div class=\"card-image\"></div>\n        Food\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
+$templateCache.put("dish-forgot/dish-forgot.html","<div ng-controller=\"dishForgotController\">\n	<form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\">\n	  <div class=\"list list-inset\">\n	    <label class=\"item item-input\">\n	      <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n	    </label>\n	  </div>\n	  <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n	  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n	    Back to Login\n	  </div>\n	</form>\n</div>");
+$templateCache.put("dish-home/dish-home.html","<div class=\"home\" ng-controller=\"dishHomeController\">\n  <dish-tray class=\"overlays\">\n    <div class=\"overlay top\">\n      <ng-include src=\"&apos;dish-cook/dish-cook.html&apos;\"></ng-include>\n    </div>\n    <div class=\"overlay bottom\">\n      <ng-include src=\"&apos;dish-food/dish-food.html&apos;\"></ng-include>\n    </div>\n  </dish-tray>\n</div>");
 $templateCache.put("dish-profile/dish-profile.html","<ion-content class=\"profile\" ng-controller=\"dishProfileController\">\n  <h1>Profile!</h1>\n  <button ng-click=\"profile()\" class=\"button button-clear button-positive\">Profile!</button>\n   <button ng-click=\"logout()\" class=\"button button-clear button-positive\">Logout</button>\n</ion-content>\n");
+$templateCache.put("dish-login/dish-login.html","<div ng-controller=\"dishLoginController\">\n  <form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\">\n    <div class=\"list list-inset\">\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n      </label>\n    </div>\n    <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n    <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n      Signup\n    </div>\n  </form>\n  <div class=\"button button-clear button-light forgotLink\" ng-click=\"toForgot()\">Forgot Password?</div>\n</div>");
 $templateCache.put("dish-signup/dish-signup-modal.html","<ion-modal-view class=\"modal signup\">\n  <dish-slider>\n    <dish-slide template=\"dish-signup/dish-signup.html\"></dish-slide>\n    <dish-slide template=\"dish-login/dish-login.html\"></dish-slide>\n    <dish-slide template=\"dish-forgot/dish-forgot.html\"></dish-slide>\n  </dish-slider>\n  <div class=\"logo\"></div>\n</ion-modal-view>");
-$templateCache.put("dish-signup/dish-signup.html","<form class=\"signupForm\" name=\"signupForm\" novalidate ng-submit=\"signupForm.$valid && signup(signupData.user)\" ng-controller=\"dishSignupController\">\n  <div class=\"list list-inset\">\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"signupData.user.username\" placeholder=\"Full Name\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"text\" ng-model=\"signupData.user.email\" placeholder=\"Email\">\n    </label>\n    <label class=\"item item-input\">\n      <input type=\"password\" ng-model=\"signupData.user.password\" placeholder=\"Password\">\n    </label>\n  </div>\n  <button class=\"button button-block form-button\" type=\"submit\">Signup</button>\n  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n    Login\n  </div>\n</form>");
+$templateCache.put("dish-signup/dish-signup.html","<div ng-controller=\"dishSignupController\">\n  <form class=\"signupForm\" name=\"signupForm\" novalidate ng-submit=\"signupForm.$valid && signup(signupData.user)\">\n    <div class=\"list list-inset\">\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"signupData.user.username\" placeholder=\"Full Name\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"signupData.user.email\" placeholder=\"Email\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"password\" ng-model=\"signupData.user.password\" placeholder=\"Password\">\n      </label>\n    </div>\n    <button class=\"button button-block form-button\" type=\"submit\">Signup</button>\n    <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n      Login\n    </div>\n  </form>\n</div>");
 $templateCache.put("dish-transactions/dish-transactions.html","<ion-content class=\"transactions\" ng-controller=\"dishTransactionsController\">\n  <h1 ng-click=\"transaction()\">Transactions!</h1>\n</ion-content>\n");}]);

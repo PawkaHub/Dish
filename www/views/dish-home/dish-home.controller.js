@@ -5,9 +5,14 @@
 
 		$scope.currentUser = Auth.user;
 
-		$scope.home = function() {
-			$log.log('home');
-		};
+		$scope.getCardWidth = function(food, index) {
+			return window.innerWidth;
+		}
+
+		$scope.getCardHeight = function(food, index) {
+			return window.innerHeight;
+		}
+
 	}
 
 	DishHomeController.$inject = ['$scope', '$log', 'Auth'];

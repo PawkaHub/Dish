@@ -40,6 +40,10 @@
     <script src="components/dish-input/dish-input.module.js"></script>
     <script src="components/dish-input/dish-input.directive.js"></script>
 
+    <!-- button -->
+    <script src="components/dish-button/dish-button.module.js"></script>
+    <script src="components/dish-button/dish-button.directive.js"></script>
+
     <!-- sheet -->
     <script src="components/dish-sheet/dish-sheet.module.js"></script>
     <script src="components/dish-sheet/dish-sheet.service.js"></script>
@@ -53,6 +57,11 @@
     <script src="components/dish-slider/dish-slider.service.js"></script>
     <script src="components/dish-slider/dish-slider.directive.js"></script>
     <script src="components/dish-slider/dish-slide.directive.js"></script>
+
+    <!-- tray -->
+    <script src="components/dish-tray/dish-tray.module.js"></script>
+    <script src="components/dish-tray/dish-tray.factory.js"></script>
+    <script src="components/dish-tray/dish-tray.directive.js"></script>
 
     <!-- modal -->
     <script src="components/dish-modal/dish-modal.module.js"></script>
@@ -84,6 +93,14 @@
     <script src="views/dish-home/dish-home.module.js"></script>
 		<script src="views/dish-home/dish-home.controller.js"></script>
 
+    <!-- food -->
+    <script src="views/dish-food/dish-food.module.js"></script>
+    <script src="views/dish-food/dish-food.controller.js"></script>
+
+    <!-- cook -->
+    <script src="views/dish-cook/dish-cook.module.js"></script>
+    <script src="views/dish-cook/dish-cook.controller.js"></script>
+
     <!-- profile -->
     <script src="views/dish-profile/dish-profile.module.js"></script>
     <script src="views/dish-profile/dish-profile.controller.js"></script>
@@ -106,10 +123,11 @@
 	</head>
 
 	<body ng-app="dish" ng-controller="dishBootstrapController">
-    <dish-slider>
+    <ng-include src="&apos;dish-home/dish-home.html&apos;"></ng-include>
+    <!--<dish-slider>
       <dish-slide template="dish-profile/dish-profile.html"></dish-slide>
       <dish-slide template="dish-home/dish-home.html"></dish-slide>
       <dish-slide template="dish-transactions/dish-transactions.html"></dish-slide>
-    </dish-slider>
+    </dish-slider>-->
 	</body>
 </html>

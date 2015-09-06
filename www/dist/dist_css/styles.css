@@ -15,6 +15,258 @@ $assertive:                       #ef473a !default;
 $royal:                           #886aea !default;
 $dark:                            #444 !default;
 */
+@font-face {
+  font-family: 'raleway-extra-light';
+  src: url('../fonts/raleway-extralight-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-thin';
+  src: url('../fonts/raleway-thin-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-light';
+  src: url('../fonts/raleway-light-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway';
+  src: url('../fonts/raleway-regular-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-medium';
+  src: url('../fonts/raleway-medium-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-semibold';
+  src: url('../fonts/raleway-semibold-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-bold';
+  src: url('../fonts/raleway-bold-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-extra-bold';
+  src: url('../fonts/raleway-extrabold-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'raleway-heavy';
+  src: url('../fonts/raleway-heavy-webfont.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'ziamimi-light';
+  src: url('../fonts/ziamimi-light.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'ziamimi';
+  src: url('../fonts/ziamimi-regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'ziamimi-bold';
+  src: url('../fonts/ziamimi-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'ionicons';
+  src: url('../fonts/ionicons.ttf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-bold';
+  src: url('../fonts/manifoldcf-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-bold-oblique';
+  src: url('../fonts/manifoldcf-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-demi-bold';
+  src: url('../fonts/manifoldcf-demi-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-demi-bold-oblique';
+  src: url('../fonts/manifoldcf-demi-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extra-bold';
+  src: url('../fonts/manifoldcf-extra-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extra-bold-oblique';
+  src: url('../fonts/manifoldcf-extra-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extended-bold';
+  src: url('../fonts/manifoldcf-extended-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extended-demi-bold';
+  src: url('../fonts/manifoldcf-extended-demi-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extended-extra-bold';
+  src: url('../fonts/manifoldcf-extended-extra-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extended-light';
+  src: url('../fonts/manifoldcf-extended-light.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-extended-regular';
+  src: url('../fonts/manifoldcf-extended-regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-light';
+  src: url('../fonts/manifoldcf-light.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-light-oblique';
+  src: url('../fonts/manifoldcf-light-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold';
+  src: url('../fonts/manifoldcf-regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'manifold-regular-oblique';
+  src: url('../fonts/manifoldcf-regular-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-bold';
+  src: url('../fonts/visbycf-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-bold-oblique';
+  src: url('../fonts/visbycf-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-demi-bold';
+  src: url('../fonts/visbycf-demi-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-demi-bold-oblique';
+  src: url('../fonts/visbycf-demi-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-extra-bold';
+  src: url('../fonts/visbycf-extra-bold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-extra-bold-oblique';
+  src: url('../fonts/visbycf-extra-bold-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-heavy';
+  src: url('../fonts/visbycf-heavy.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-heavy-oblique';
+  src: url('../fonts/visbycf-heavy-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-light';
+  src: url('../fonts/visbycf-light.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-light-oblique';
+  src: url('../fonts/visbycf-light-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby';
+  src: url('../fonts/visbycf-medium.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-oblique';
+  src: url('../fonts/visbycf-medium-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-thin';
+  src: url('../fonts/visbycf-thin.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
+@font-face {
+  font-family: 'visby-thin-oblique';
+  src: url('../fonts/visbycf-thin-oblique.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal; }
+
 @-webkit-keyframes spin {
   100% {
     -webkit-transform: rotate(360deg);
@@ -7706,16 +7958,17 @@ a.button {
   transition-duration: 0s; }
 
 body {
-  background-color: #f5f5f5; }
-  body:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: -1;
-    height: 44px;
-    background-color: #2980b9; }
+  background-color: #f5f5f5;
+  /*&:after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		left: 0;
+		z-index: -1;
+		height: 44px;
+		background-color: $brandTint;
+	}*/ }
 
 .appSlider {
   position: absolute;
@@ -7812,14 +8065,6 @@ body {
     margin-top: -245px;
     opacity: 0.9; }
 
-.loginSlider {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1; }
-
 .logo {
   width: 150px;
   height: 150px;
@@ -7875,14 +8120,23 @@ body {
   z-index: 1;
   font-size: smaller; }
 
-.cook, .home {
+.home {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 9; }
-  .cook .scroll, .cook .list, .home .scroll, .home .list {
+  z-index: 9;
+  background-color: #f5f5f5; }
+
+.overlays {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  -webkit-transition: -webkit-transform 0.2s ease-in-out; }
+  .overlays .scroll, .overlays .list {
     position: absolute;
     top: 0;
     right: 0;
@@ -7890,10 +8144,10 @@ body {
     left: 0;
     z-index: 1;
     background-color: transparent; }
-  .cook .list, .home .list {
+  .overlays .list {
     overflow: visible;
     padding-bottom: 100px; }
-    .cook .list:last-child, .home .list:last-child {
+    .overlays .list:last-child {
       margin-bottom: 20px; }
 
 .overlay {
@@ -7902,7 +8156,14 @@ body {
   position: relative;
   z-index: 1; }
   .overlay.top {
-    background-color: rgba(0, 0, 0, 0.7); }
+    background-color: rgba(255, 255, 255, 0.7); }
+    .overlay.top:after {
+      content: '';
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: -100%;
+      background-color: rgba(255, 255, 255, 0.7); }
   .overlay.bottom {
     background-color: transparent; }
 
@@ -7917,36 +8178,87 @@ body {
   color: #fff;
   font-size: 24px; }
 
-.food-card {
+.cards {
   position: absolute;
-  top: 60px;
-  right: 15px;
-  bottom: 15px;
-  left: 15px;
-  background-color: #fff;
-  border-radius: 5px;
-  overflow: hidden; }
-
-.food-image {
-  width: 100%;
-  height: 200px;
-  background-color: #f5f5f5;
-  background-image: url('../img/food.jpg');
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: 50% 50%; }
-
-.food-label {
-  height: 40px;
-  line-height: 40px; }
-  .food-label .food-input {
-    height: inherit;
-    line-height: inherit;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  top: 60px; }
+  .cards .scroll, .cards .list {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1;
+    background-color: transparent; }
+  .cards .list {
+    overflow: visible;
+    padding-bottom: 100px; }
+    .cards .list:last-child {
+      margin-bottom: 20px; }
+  .cards .collection-repeat-container {
+    height: 100%; }
+  .cards .card-holder {
+    background-image: url('');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
     width: 100%;
-    padding: 0 15px 0 15px; }
+    height: 100%;
+    position: relative;
+    color: #fff; }
+    .cards .card-holder .card {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      bottom: 15px;
+      left: 15px;
+      margin: 0;
+      padding: 0;
+      border-radius: 5px;
+      overflow: hidden; }
+      .cards .card-holder .card .card-image {
+        width: 100%;
+        height: 200px;
+        background-color: #f5f5f5;
+        position: relative;
+        background-image: url('../img/food.jpg');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: 50% 50%;
+        margin-bottom: 25px; }
+
+.dish-photo {
+  width: inherit;
+  height: inherit; }
+  .dish-photo .uploaded-photo {
+    width: inherit;
+    height: inherit; }
+
+.add-photo {
+  width: 60px;
+  height: 60px;
+  position: absolute;
+  background-color: #2980b9;
+  bottom: -30px;
+  z-index: 99;
+  right: 0;
+  left: 0;
+  margin: 0 auto;
+  border-radius: 50%;
+  color: #fff;
+  line-height: 60px;
+  font-size: 36px;
+  text-align: center; }
+  .add-photo:before {
+    content: '\f3f6';
+    font-family: 'ionicons';
+    height: inherit;
+    width: inherit; }
 
 .dish-input {
-  max-width: 300px;
   margin: 0 auto;
   height: 50px;
   padding: 0;
@@ -7955,6 +8267,15 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background-image: none;
   opacity: 0.9; }
+  .dish-input.half {
+    width: 50%;
+    float: left; }
+    .dish-input.half:last-of-type {
+      border-left: 1px solid rgba(0, 0, 0, 0.1);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 0; }
+    .dish-input.half .error {
+      right: 17px; }
   .dish-input:first-of-type {
     border-top-left-radius: 4px;
     border-top-right-radius: 4px; }
@@ -7968,19 +8289,42 @@ body {
     opacity: 0;
     -webkit-transform: scale3d(0, 0, 0);
     height: 30px;
-    width: 30px;
+    width: 40px;
     line-height: 30px;
     text-align: center;
     position: relative;
-    right: 7px; }
-  .dish-input input {
+    right: 2px; }
+  .dish-input.item-input input {
     padding: 0;
     padding-right: 12px; }
-    .dish-input input::-webkit-input-placeholder {
+    .dish-input.item-input input::-webkit-input-placeholder {
       color: rgba(0, 0, 0, 0.3); }
-    .dish-input input.ng-dirty.ng-invalid + .error {
+    .dish-input.item-input input.ng-dirty.ng-invalid + .error {
       opacity: 1;
       -webkit-transform: scale3d(1, 1, 1); }
+
+.dish-button.button {
+  margin: 0;
+  position: absolute;
+  bottom: 0; }
+
+.action-sheet-wrapper .action-sheet {
+  margin: 0;
+  background-color: #f5f5f5; }
+  .action-sheet-wrapper .action-sheet .action-sheet-group {
+    border-radius: 0;
+    background-color: transparent;
+    margin: 0; }
+    .action-sheet-wrapper .action-sheet .action-sheet-group .button {
+      border-radius: 0;
+      border: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      color: #bbb;
+      font-family: visby; }
+    .action-sheet-wrapper .action-sheet .action-sheet-group.action-sheet-cancel {
+      background-color: #ef473a; }
+      .action-sheet-wrapper .action-sheet .action-sheet-group.action-sheet-cancel .button {
+        color: #fff; }
 
 .dish-slider {
   position: absolute;

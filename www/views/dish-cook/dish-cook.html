@@ -1,0 +1,15 @@
+<div ng-controller="dishCookController">
+	<div class="title">Cook</div>
+	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
+    <div class="card-holder" collection-repeat="recipe in recipes" item-width="getCardWidth(recipe, $index)" item-height="getCardHeight(recipe, $index)">
+      <div class="card">
+        <dish-photo class="card-image" ng-model="recipe.photo"></dish-photo>
+        <dish-input ng-model="recipe.name" placeholder="Name"></dish-input>
+        <dish-input ng-model="recipe.ingredients" placeholder="Ingredients"></dish-input>
+        <dish-input class="half" ng-model="recipe.portions" placeholder="Portions"></dish-input>
+        <dish-input class="half" ng-model="recipe.price" placeholder="Price"></dish-input>
+        <dish-button text="Post Meal"></dish-button>
+      </div>
+    </div>
+  </ion-scroll>
+</div>

@@ -21,6 +21,8 @@
 						}
 					});
 				});
+
+				//dishSliderService.enableSlide(false);
 			},
 			controller: ['$scope', function($scope) {
 				$scope.slides = [];

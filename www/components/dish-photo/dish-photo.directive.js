@@ -58,7 +58,7 @@
 					});
 				};
 			}],
-			template: '<div class="photo" ng-click="openPicker()"><div class="uploaded-photo" style="background-image:url({{croppedPhoto}});"></div></div>'
+			template: '<div><div class="dish-photo"><div class="uploaded-photo" style="background-image:url({{photo}});"></div></div><div class="add-photo" ng-click="openPicker()"></div></div>'
 		};
 	}
 

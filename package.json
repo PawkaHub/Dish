@@ -30,12 +30,14 @@
     "cordova-plugin-whitelist",
     "org.apache.cordova.splashscreen",
     "cordova-plugin-inappbrowser",
-    "org.apache.cordova.statusbar", {
+    "org.apache.cordova.statusbar",
+    {
       "locator": "https://github.com/phonegap-build/PushPlugin.git",
       "id": "com.phonegap.plugins.PushPlugin"
     },
     "cordova-plugin-splashscreen",
-    "cordova-plugin-crosswalk-webview"
+    "cordova-plugin-crosswalk-webview",
+    "cordova-plugin-camera"
   ],
   "cordovaPlatforms": [
     "android",

@@ -27,15 +27,15 @@
 						scope.inputType = 'password';
 						scope.minLength = 8;
 						break;
-					case 'phone':
+					case 'price':
 						scope.inputType = 'number';
-						scope.minLength = 9;
+						//scope.minLength = 9;
 						scope.pattern = '[0-9]*';
 						break;
-					case 'experience':
+					case 'portions':
 						scope.inputType = 'number';
-						scope.minLength = 0;
-						scope.maxLength = 3;
+						//scope.minLength = 0;
+						//scope.maxLength = 3;
 						scope.pattern = '[0-9]*';
 						break;
 					default:

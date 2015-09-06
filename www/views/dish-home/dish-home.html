@@ -1,15 +1,10 @@
-<ion-scroll class="home" ng-controller="dishHomeController" paging="true" scrollbar-y="false">
-  <div class="overlay top">
-    <div class="overlay-title">Cook</div>
-    <div class="food-card">
-      <div class="food-image"></div>
-      <dish-input ng-model="food.name" placeholder="Food Name"></dish-input>
-      <dish-photo ng-model="food.photo"></dish-photo>
+<div class="home" ng-controller="dishHomeController">
+  <dish-tray class="overlays">
+    <div class="overlay top">
+      <ng-include src="&apos;dish-cook/dish-cook.html&apos;"></ng-include>
     </div>
-  </div>
-  <div class="overlay bottom" ng-click="home()">Hello {{currentUser.profile.username}}</div>
-</ion-scroll>
-<!--<ion-content class="home" ng-controller="HomeCtrl" paging="true" scrollbar-y="false">
-	Food
-</ion-content>-->
-<!--<ng-include src="&apos;cook/cook.html&apos;"></ng-include>-->
+    <div class="overlay bottom">
+      <ng-include src="&apos;dish-food/dish-food.html&apos;"></ng-include>
+    </div>
+  </dish-tray>
+</div>

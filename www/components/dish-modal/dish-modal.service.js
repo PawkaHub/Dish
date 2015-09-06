@@ -20,6 +20,7 @@
 		};
 
 		_self.close = function close() {
+			if (!dishModal) return;
 			dishModal.hide();
 			dishModal.remove();
 		};

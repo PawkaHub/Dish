@@ -1,0 +1,15 @@
+<div ng-controller="dishFoodController">
+	<div class="title">Eat</div>
+	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="false">
+    <div class="card-holder" collection-repeat="food in foods" item-width="getCardWidth(food, $index)" item-height="getCardHeight(food, $index)">
+      <div class="card">
+        <dish-photo class="card-image" ng-model="food.photo"></dish-photo>
+        <dish-input ng-model="food.name" placeholder="Name"></dish-input>
+        <dish-input ng-model="food.ingredients" placeholder="Ingredients"></dish-input>
+        <dish-input class="half" ng-model="food.portions" placeholder="Portions"></dish-input>
+        <dish-input class="half" ng-model="food.price" placeholder="Price"></dish-input>
+        <dish-button text="Order Meal"></dish-button>
+      </div>
+    </div>
+  </ion-scroll>
+</div>

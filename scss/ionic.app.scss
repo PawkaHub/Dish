@@ -400,20 +400,96 @@ body {
 	.pane {
 		background-color: $secondTint;
 	}
-	.payment-modal {
+	.modal {
+		background-color: $secondTint;
 		.title {
 			right: 0;
 			left: 0;
-			padding-right: 50px;
-			padding-left: 50px;
-			z-index: 9;
-			background-color: rgba(255,255,255,0.8);
 		}
-		.cards {
-			top: 0;
-			.card-holder {
-				&.first {
-					margin-top: 45px;
+		&.payment-modal, &.promotions-modal, &.help-modal {
+			.title {
+				right: 0;
+				left: 0;
+				padding-right: 50px;
+				padding-left: 50px;
+				z-index: 9;
+				//background-color: rgba(255,255,255,0.8);
+				background-color: rgba(245,245,245,0.8);
+			}
+			.cards {
+				top: 0;
+				.card-holder {
+					&.first {
+						margin-top: 50px;
+					}
+				}
+			}
+		}
+		&.help-modal {
+			.title {
+				padding-right: 0;
+				padding-left: 0;
+			}
+			.cards {
+				.card-holder {
+					&.issues {
+						margin-top: 55px;
+						height: 250px;
+						.card {
+							.card-image {
+								bottom: 50px;
+								margin: 0;
+							}
+							.card-metadata {
+								position: absolute;
+								right: 0;
+								bottom: 0;
+								left: 0;
+								height: 50px;
+								.card-date {
+									position: absolute;
+									top: 8px;
+									left: 15px;
+									font-weight: bold;
+									opacity: 0.75;
+								}
+								.card-food {
+									position: absolute;
+									bottom: 5px;
+									left: 15px;
+									font-size: 12px;
+									opacity: 0.6;
+								}
+								.card-price {
+									position: absolute;
+									top: 15px;
+									right: 15px;
+									font-size: 16px;
+									opacity: 0.75;
+								}
+							}
+						}
+					}
+					&.other-issues {
+						height: 50px;
+						line-height: 50px;
+						top: auto;
+						bottom: 0;
+						margin-bottom: 20px;
+						.card {
+							top: 0;
+							bottom: 0;
+							line-height: inherit;
+						}
+					}
+					&.other {
+						height: 245px;
+					}
+					.card {
+						top: 30px;
+						color: rgba(0,0,0,0.5);
+
+					}
 				}
 			}
 		}
@@ -628,6 +704,30 @@ body {
 	.collection-repeat-container {
 		height: 100%; //Fix collection-repeat not working
 	}
+	.card-holder-title {
+		position: absolute;
+		top: 0;
+		right: 0;
+		left: 0;
+		text-align: center;
+		margin: 0 auto;
+		color: #000;
+		opacity: 0.5;
+		&:before, &:after {
+			content: '';
+			position: absolute;
+			top: 10px;
+			width: 70px;
+			height: 1px;
+			background-color: rgba(0,0,0,0.2);
+		}
+		&:before {
+			left: 15px;
+		}
+		&:after {
+			right: 15px;
+		}
+	}
 	.card-holder {
 		//@include full;
 		@include cover('');
@@ -645,28 +745,88 @@ body {
 			padding: 0;
 			border-radius: 5px;
 			overflow: hidden;
+			.card-title {
+				position: absolute;
+				right: 0;
+				bottom: 50px;
+				left: 0;
+				text-align: center;
+				height: 40px;
+				line-height: 40px;
+				background-color: #fff;
+				color: #333;
+			}
 			.card-image {
-				width: 100%;
-				height: 200px;
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 200px;
+				left: 0;
 				line-height: 200px;
 				background-color: #333;
-				position: relative;
 				text-align: center;
 				font-size: 16px;
 				color: rgba(255,255,255,0.5);
-				//@include cover('../img/no-food.jpg');
+				@include cover('');
 				margin-bottom: 25px;
 				&:before {
 					content: 'Please add a photo';
-					width: inherit;
-					height: inherit;
+					@include vertCenter;
+					height: 20px;
+					line-height: 20px;
+					margin-top: -10px;
+				}
+			}
+			.card-icon {
+				position: absolute;
+				top: 15px;
+				left: 15px;
+				text-align: center;
+				font-size: 36px;
+				height: 60px;
+				width: 60px;
+				line-height: 60px;
+				background-color: #fff;
+				color: $brandTint;
+				border-radius: 50%;
+				text-align: center;
+				pointer-events: none;
+				&:before {
+					@include full;
+					line-height: inherit;
+				}
+			}
+			.dish-input {
+				&.input-first {
+					border-top-left-radius: 0;
+					border-top-right-radius: 0;
+					position: absolute;
+					bottom: 150px;
+					width: 100%;
+				}
+				&.input-second {
+					position: absolute;
+					bottom: 100px;
+					width: 100%;
+				}
+				&.input-third {
+					position: absolute;
+					bottom: 50px;
+					&.half {
+						width: 50%;
+						&:first-of-type {
+							left: 0;
+						}
+						&:last-of-type {
+							right: 0;
+						}
+					}
 				}
 			}
 			.card-options {
 				position: absolute;
-				top: 200px;
 				right: 0;
-				bottom: 0;
+				bottom: 50px;
 				left: 0;
 				.dish-input {
 					line-height: 50px;
@@ -674,7 +834,7 @@ body {
 				}
 			}
 		}
-		&.food, &.transaction {
+		&.food, &.transaction, &.favorite {
 			.card-image {
 				margin-bottom: 0;
 				&:before {
@@ -682,8 +842,41 @@ body {
 				}
 			}
 		}
+		&.profile {
+			.card-image {
+				bottom: 300px;
+				margin: 0;
+			}
+		}
 		&.payment {
 			height: 226px;
+		}
+		&.promotion {
+			height: 120px;
+			background-color: $secondTint;
+			.card {
+				background-color: $brandTint;
+			}
+			.dish-button {
+				position: absolute;
+				top: 0;
+				left: 0;
+				padding-left: 95px;
+				padding-right: 10px;
+				height: inherit;
+				text-align: left;
+				line-height: 1.3;
+				font-size: 18px;
+				font-family: 'visby';
+				&.activated + .card-icon {
+					color: #20638f;
+				}
+			}
+			.card-icon {
+				&.ion-ios-heart {
+					line-height: 64px;
+				}
+			}
 		}
 	}
 }
@@ -727,6 +920,7 @@ body {
 .dish-input {
 	margin: 0 auto;
 	height: 50px;
+	line-height: 50px;
 	padding: 0;
 	padding-left: 15px;
 	border: none;
@@ -743,6 +937,14 @@ body {
 			border-radius: 0;
 		}
 		.error {
+			right: 15px;
+		}
+	}
+	&.advance {
+		&:before {
+			content: '\f3d3';
+			font-family: 'ionicons';
+			position: absolute;
 			right: 15px;
 		}
 	}
@@ -796,6 +998,11 @@ body {
 		margin: 0;
 		position: absolute;
 		bottom: 0;
+		height: 50px;
+		line-height: 50px;
+		border: none;
+		margin: 0;
+		padding: 0;
 	}
 }
 

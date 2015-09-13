@@ -1,4 +1,14 @@
-<ion-modal-view class="modal promotions" ng-controller="dishPromotionsController">
+<ion-modal-view class="modal promotions-modal" ng-controller="dishPromotionsController">
+	<div class="nav-icon left close-icon" ng-click="closeModal()"></div>
 	<div class="title">Promotions</div>
-	<div class="nav-icon right close-icon" ng-click="closeModal()"></div>
+	<ion-scroll class="cards" direction="y" scrollbar-y="false" on-scroll="onScroll()">
+  	<div collection-repeat="promotion in promotions" item-width="getCardWidth(promotion, $index)" item-height="getCardHeight(promotion, $index)">
+  		<div class="card-holder promotion {{$index === 0 ? 'first' : ''}}">
+				<div class="card" ng-click="promotion.command()">
+	        <dish-button ng-bind-html="promotion.button"></dish-button>
+	        <div class="card-icon icon {{promotion.icon}}"></div>
+				</div>
+			</div>
+  	</div>
+	</ion-scroll>
 </ion-modal-view>

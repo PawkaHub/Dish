@@ -6,10 +6,10 @@
     <div class="card-holder food" collection-repeat="food in foods" item-width="getCardWidth(food, $index)" item-height="getCardHeight(food, $index)">
       <div class="card">
       	<div class="card-image" style="background-image:url({{food.photo}});"></div>
-        <dish-input ng-model="food.name" placeholder="Name" readonly="true"></dish-input>
-        <dish-input ng-model="food.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
-        <dish-input class="half" ng-model="food.portions" placeholder="Portions" readonly="true"></dish-input>
-        <dish-input class="half" ng-model="food.price" placeholder="Price" readonly="true"></dish-input>
+        <dish-input class="input-first" ng-model="food.name" placeholder="Name" readonly="true"></dish-input>
+        <dish-input class="input-second" ng-model="food.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
+        <dish-input class="input-third half" ng-model="food.portions" placeholder="Portions" readonly="true"></dish-input>
+        <dish-input class="input-third half" ng-model="food.price" placeholder="Price" readonly="true"></dish-input>
         <dish-button text="Buy Meal"></dish-button>
       </div>
     </div>

@@ -1,15 +1,15 @@
 <ion-modal-view class="modal transactions" ng-controller="dishTransactionsController">
+	<div class="nav-icon left close-icon" ng-click="closeModal()"></div>
 	<div class="title">History</div>
-	<div class="nav-icon right close-icon" ng-click="closeModal()"></div>
   <ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
   	<div collection-repeat="transaction in transactions" item-width="getCardWidth(transaction, $index)" item-height="getCardHeight(transaction, $index)">
   		<div class="card-holder transaction">
 				<div class="card">
 					<div class="card-image" style="background-image:url({{transaction.photo}});"></div>
-	        <dish-input ng-model="transaction.name" placeholder="Name" readonly="true"></dish-input>
-	        <dish-input ng-model="transaction.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
-	        <dish-input class="half" ng-model="transaction.portions" placeholder="Portions" readonly="true"></dish-input>
-	        <dish-input class="half" ng-model="transaction.price" placeholder="Price" readonly="true"></dish-input>
+	        <dish-input class="input-first" ng-model="transaction.name" placeholder="Name" readonly="true"></dish-input>
+	        <dish-input class="input-second" ng-model="transaction.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
+	        <dish-input class="input-third half" ng-model="transaction.portions" placeholder="Portions" readonly="true"></dish-input>
+	        <dish-input class="input-third half" ng-model="transaction.price" placeholder="Price" readonly="true"></dish-input>
 	        <dish-button text="View Meal"></dish-button>
 				</div>
 			</div>

@@ -1,5 +1,31 @@
-<ion-modal-view class="modal help" ng-controller="dishHelpController">
-  <div class="title">Help</div>
-	<div class="nav-icon right close-icon" ng-click="closeModal()"></div>
-  <div ng-click="help()">Help!</div>
+<ion-modal-view class="modal help-modal" ng-controller="dishHelpController">
+	<div class="nav-icon left close-icon" ng-click="closeModal()"></div>
+  <div class="title">How Can We Help?</div>
+  <ion-scroll class="cards" direction="y" scrollbar-y="false" on-scroll="onScroll()">
+	  <div class="card-holder issues">
+	  	<div class="card-holder-title">Issue With Your Meal</div>
+	  	<div class="card">
+	  		<div class="card-image" style="background-image:url({{previousMeal.photo}});"></div>
+	  		<div class="card-metadata">
+	  			<div class="card-date">Today, 11:29 AM</div>
+	  			<div class="card-food">Pizza</div>
+	  			<div class="card-price">$10.00</div>
+	  		</div>
+	  	</div>
+	  </div>
+	  <div class="card-holder other-issues">
+		  <div class="card">
+		  	<div class="dish-input advance">View Previous Meals</div>
+	  	</div>
+  	</div>
+	  <div class="card-holder other">
+	  	<div class="card-holder-title">Other Topics</div>
+	  	<div class="card">
+	  		<div class="dish-input advance">Account</div>
+	  		<div class="dish-input advance">Payment</div>
+	  		<div class="dish-input advance">How to use Dish</div>
+	  		<div class="dish-input advance">Making Your First Meal</div>
+	  	</div>
+	  </div>
+  </ion-scroll>
 </ion-modal-view>

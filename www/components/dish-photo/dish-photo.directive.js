@@ -42,7 +42,6 @@
 								popoverOptions: CameraPopoverOptions,
 								saveToPhotoAlbum: false
 							};
-							//imageOptions.sourceType = Camera.PictureSourceType.PHOTOLIBRARY;
 						}
 						if (button === 1) {
 							console.log('Take photo');
@@ -57,7 +56,6 @@
 								popoverOptions: CameraPopoverOptions,
 								saveToPhotoAlbum: false
 							};
-							//imageOptions.sourceType = Camera.PictureSourceType.CAMERA;
 						}
 						$cordovaCamera.getPicture(imageOptions).then(function(imageURI) {
 							_self.photo = "data:image/jpeg;base64," + imageURI;

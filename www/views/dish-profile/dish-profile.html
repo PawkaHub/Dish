@@ -1,11 +1,11 @@
-<div class="card" ng-controller="dishProfileController">
+<div class="card profile" ng-controller="dishProfileController">
 	<dish-photo class="card-image" ng-model="currentUser.profile.photo"></dish-photo>
 	<div class="card-options">
-		<div class="dish-input" ng-click="openModal('payment')">Payment</div>
 		<div class="dish-input" ng-click="openModal('transactions')">History</div>
 		<div class="dish-input" ng-click="openModal('promotions')">Free Meals</div>
+		<div class="dish-input" ng-click="openModal('payment')">Payment</div>
 		<div class="dish-input" ng-click="openModal('help')">Help</div>
 		<div class="dish-input" ng-click="openModal('settings')">Settings</div>
-		<dish-button text="Recommend Dish"></dish-button>
 	</div>
+	<dish-button text="Recommend Dish"></dish-button>
 </div>

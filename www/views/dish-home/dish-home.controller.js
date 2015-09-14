@@ -1,7 +1,11 @@
 (function() {
 	'use strict';
 
-	function DishHomeController($scope, $log, Auth, dishKeyboardService, dishModalService) {
+	function DishHomeController($scope, $log, $firebaseArray, FURL, Auth, dishKeyboardService, dishModalService) {
+
+		var url = FURL + '/meals';
+		var ref = new Firebase(url);
+		$scope.meals = $firebaseArray(ref);
 
 		$scope.swiper = {};
 		$scope.currentUser = Auth.user;
@@ -58,7 +62,7 @@
 		}
 	}
 
-	DishHomeController.$inject = ['$scope', '$log', 'Auth', 'dishKeyboardService', 'dishModalService'];
+	DishHomeController.$inject = ['$scope', '$log', '$firebaseArray', 'FURL', 'Auth', 'dishKeyboardService', 'dishModalService'];
 
 	angular.module('dish.home')
 		.controller('dishHomeController', DishHomeController);

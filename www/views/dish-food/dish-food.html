@@ -3,14 +3,15 @@
 	<div class="title">Eat</div>
   <div class="nav-icon right profile-icon" ng-click="toProfile()"></div>
 	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
-    <div class="card-holder food" collection-repeat="food in foods" item-width="getCardWidth(food, $index)" item-height="getCardHeight(food, $index)">
+    <div class="card-holder meal" collection-repeat="meal in meals" item-width="getCardWidth(meal, $index)" item-height="getCardHeight(meal, $index)">
+      {{currentUser.profile.$id}}
       <div class="card">
-      	<div class="card-image" style="background-image:url({{food.photo}});"></div>
-        <dish-input class="input-first" ng-model="food.name" placeholder="Name" readonly="true"></dish-input>
-        <dish-input class="input-second" ng-model="food.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
-        <dish-input class="input-third half" ng-model="food.portions" placeholder="Portions" readonly="true"></dish-input>
-        <dish-input class="input-third half" ng-model="food.price" placeholder="Price" readonly="true"></dish-input>
-        <dish-button text="Buy Meal"></dish-button>
+      	<div class="card-image {{meal.photo ? 'filled' : 'empty'}}" style="background-image:url({{meal.photo}});"></div>
+        <dish-input class="input-first" ng-model="meal.name" placeholder="Name" readonly="true"></dish-input>
+        <dish-input class="input-second" ng-model="meal.ingredients" placeholder="Ingredients" readonly="true"></dish-input>
+        <dish-input class="input-third half" ng-model="meal.portions" placeholder="Portions" readonly="true"></dish-input>
+        <dish-input class="input-third half" ng-model="meal.price" placeholder="Price" readonly="true"></dish-input>
+        <dish-button text="Buy Meal" ng-click="buy()"></dish-button>
       </div>
     </div>
   </ion-scroll>

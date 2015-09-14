@@ -8019,12 +8019,51 @@ body {
   .modal-wrapper .modal.help-modal .title {
     padding-right: 0;
     padding-left: 0; }
-  .modal-wrapper .modal.help-modal .card-holder-title {
-    top: 60px;
-    opacity: 0.5; }
-  .modal-wrapper .modal.help-modal .cards .card-holder.first {
-    margin-top: 75px;
-    height: 200px; }
+  .modal-wrapper .modal.help-modal .cards .card-holder.issues {
+    margin-top: 55px;
+    height: 250px; }
+    .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-image {
+      bottom: 50px;
+      margin: 0; }
+    .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 50px; }
+      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-date {
+        position: absolute;
+        top: 8px;
+        left: 15px;
+        font-weight: bold;
+        opacity: 0.75; }
+      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-food {
+        position: absolute;
+        bottom: 5px;
+        left: 15px;
+        font-size: 12px;
+        opacity: 0.6; }
+      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-price {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 16px;
+        opacity: 0.75; }
+  .modal-wrapper .modal.help-modal .cards .card-holder.other-issues {
+    height: 50px;
+    line-height: 50px;
+    top: auto;
+    bottom: 0;
+    margin-bottom: 20px; }
+    .modal-wrapper .modal.help-modal .cards .card-holder.other-issues .card {
+      top: 0;
+      bottom: 0;
+      line-height: inherit; }
+  .modal-wrapper .modal.help-modal .cards .card-holder.other {
+    height: 245px; }
+  .modal-wrapper .modal.help-modal .cards .card-holder .card {
+    top: 30px;
+    color: rgba(0, 0, 0, 0.5); }
 
 .signup {
   position: absolute;
@@ -8271,17 +8310,20 @@ body {
     right: 0;
     left: 0;
     text-align: center;
-    margin: 0 auto; }
+    margin: 0 auto;
+    color: #000;
+    opacity: 0.5; }
     .cards .card-holder-title:before, .cards .card-holder-title:after {
       content: '';
       position: absolute;
-      top: 9px;
-      width: 200px;
-      height: 1px; }
+      top: 10px;
+      width: 70px;
+      height: 1px;
+      background-color: rgba(0, 0, 0, 0.2); }
     .cards .card-holder-title:before {
-      left: 0; }
+      left: 15px; }
     .cards .card-holder-title:after {
-      right: 0; }
+      right: 15px; }
   .cards .card-holder {
     background-image: url('');
     background-size: cover;
@@ -8452,6 +8494,7 @@ body {
 .dish-input {
   margin: 0 auto;
   height: 50px;
+  line-height: 50px;
   padding: 0;
   padding-left: 15px;
   border: none;
@@ -8468,6 +8511,11 @@ body {
       border-radius: 0; }
     .dish-input.half .error {
       right: 15px; }
+  .dish-input.advance:before {
+    content: '\f3d3';
+    font-family: 'ionicons';
+    position: absolute;
+    right: 15px; }
   .dish-input:first-of-type {
     border-top-left-radius: 4px;
     border-top-right-radius: 4px; }

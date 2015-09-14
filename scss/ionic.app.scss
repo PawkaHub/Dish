@@ -769,12 +769,14 @@ body {
 				color: rgba(255,255,255,0.5);
 				@include cover('');
 				margin-bottom: 25px;
-				&:before {
-					content: 'Please add a photo';
-					@include vertCenter;
-					height: 20px;
-					line-height: 20px;
-					margin-top: -10px;
+				&.empty {
+					&:before {
+						content: 'Please add a photo';
+						@include vertCenter;
+						height: 20px;
+						line-height: 20px;
+						margin-top: -10px;
+					}
 				}
 			}
 			.card-icon {
@@ -834,11 +836,13 @@ body {
 				}
 			}
 		}
-		&.food, &.transaction, &.favorite {
+		&.meal, &.transaction, &.favorite {
 			.card-image {
 				margin-bottom: 0;
-				&:before {
-					content: 'No photo available';
+				&.empty {
+					&:before {
+						content: 'No photo available';
+					}
 				}
 			}
 		}
@@ -1003,6 +1007,15 @@ body {
 		border: none;
 		margin: 0;
 		padding: 0;
+		-webkit-transition: all 300ms ease-in-out;
+	}
+	&.inactive {
+		opacity: 0.5;
+		pointer-events: none;
+	}
+	&.active {
+		opacity: 1;
+		pointer-events: auto;
 	}
 }
 

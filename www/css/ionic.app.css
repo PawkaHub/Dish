@@ -8369,7 +8369,7 @@ body {
         background-repeat: no-repeat;
         background-position: 50% 50%;
         margin-bottom: 25px; }
-        .cards .card-holder .card .card-image:before {
+        .cards .card-holder .card .card-image.empty:before {
           content: 'Please add a photo';
           position: absolute;
           top: 50%;
@@ -8427,9 +8427,9 @@ body {
         .cards .card-holder .card .card-options .dish-input {
           line-height: 50px;
           color: #333; }
-    .cards .card-holder.food .card-image, .cards .card-holder.transaction .card-image, .cards .card-holder.favorite .card-image {
+    .cards .card-holder.meal .card-image, .cards .card-holder.transaction .card-image, .cards .card-holder.favorite .card-image {
       margin-bottom: 0; }
-      .cards .card-holder.food .card-image:before, .cards .card-holder.transaction .card-image:before, .cards .card-holder.favorite .card-image:before {
+      .cards .card-holder.meal .card-image.empty:before, .cards .card-holder.transaction .card-image.empty:before, .cards .card-holder.favorite .card-image.empty:before {
         content: 'No photo available'; }
     .cards .card-holder.profile .card-image {
       bottom: 300px;
@@ -8552,7 +8552,14 @@ body {
   line-height: 50px;
   border: none;
   margin: 0;
-  padding: 0; }
+  padding: 0;
+  -webkit-transition: all 300ms ease-in-out; }
+.dish-button.inactive {
+  opacity: 0.5;
+  pointer-events: none; }
+.dish-button.active {
+  opacity: 1;
+  pointer-events: auto; }
 
 .action-sheet-wrapper .action-sheet {
   margin: 0;

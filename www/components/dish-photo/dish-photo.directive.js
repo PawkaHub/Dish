@@ -20,6 +20,12 @@
 					var imageOptions;
 				}
 
+				//Set the photo if the model exists
+				//if (_self.ngModel) {
+				console.log('_self', _self.ngModel);
+				_self.photo = _self.ngModel;
+				//}
+
 				_self.openPicker = function() {
 					console.log('DishPhoto', $scope.ngModel, $scope.type, imageOptions);
 					options[0] = {

@@ -5,12 +5,13 @@
 	<ion-scroll class="cards" direction="x" scrollbar-x="false" paging="true" on-scroll="onScroll()">
     <div class="card-holder" collection-repeat="recipe in recipes" item-width="getCardWidth(recipe, $index)" item-height="getCardHeight(recipe, $index)">
       <div class="card">
-        <dish-photo class="card-image" ng-model="recipe.photo"></dish-photo>
+        {{recipe.photo}}
+        <dish-photo class="card-image {{recipe.photo ? 'filled' : 'empty'}}" ng-model="recipe.photo"></dish-photo>
         <dish-input class="input-first" ng-model="recipe.name" placeholder="Name"></dish-input>
         <dish-input class="input-second" ng-model="recipe.ingredients" placeholder="Ingredients"></dish-input>
         <dish-input class="input-third half" ng-model="recipe.portions" placeholder="Portions"></dish-input>
         <dish-input class="input-third half" ng-model="recipe.price" placeholder="Price"></dish-input>
-        <dish-button text="Post Meal"></dish-button>
+        <dish-button class=" {{ valid(recipe) ? 'active' : 'inactive'}}" text="Post Meal" ng-click="cook(recipe)"></dish-button>
       </div>
     </div>
   </ion-scroll>

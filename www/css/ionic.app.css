@@ -8155,7 +8155,10 @@ body {
   bottom: 0;
   left: 0;
   z-index: 9;
-  background-color: #f5f5f5; }
+  background: black;
+  background-image: linear-gradient(rgba(85, 239, 203, 0.5), rgba(91, 202, 255, 0.5));
+  margin: auto;
+  overflow: hidden; }
 
 .transactions {
   position: absolute;
@@ -8599,3 +8602,50 @@ body {
       font-size: 24px; }
     .dish-slider .dish-slide.center .bar-header {
       background-color: transparent; }
+
+.card-holder {
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  text-align: left;
+  top: 0;
+  -webkit-transform-origin: 0 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  background-color: transparent; }
+  .card-holder .card-title {
+    color: white;
+    display: block;
+    letter-spacing: 0.5px;
+    line-height: 24px;
+    padding: 0 0 10px 42px;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2); }
+    .card-holder .card-title .card-icon {
+      height: 24px;
+      margin-right: 5px;
+      vertical-align: middle;
+      width: 24px;
+      background-image: url('');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: 50% 50%;
+      position: absolute;
+      top: 0;
+      left: 10px; }
+  .card-holder .card {
+    border-radius: 2px;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    top: 10px;
+    background-image: url('');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    padding: 10px;
+    background-color: #333;
+    color: #fff; }

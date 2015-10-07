@@ -10,6 +10,7 @@ angular.module('dish', [
   'dish.keyboard',
   'dish.input',
   'dish.button',
+  'dish.cards',
   'dish.sheet',
   'dish.alert',
   'dish.modal',

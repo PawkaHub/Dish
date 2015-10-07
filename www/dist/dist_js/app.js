@@ -10,6 +10,7 @@ angular.module('dish', [
   'dish.keyboard',
   'dish.input',
   'dish.button',
+  'dish.cards',
   'dish.sheet',
   'dish.alert',
   'dish.modal',
@@ -310,6 +311,1416 @@ angular.module('dish.bootstrap')
 	angular.module('dish.button')
 		.directive('dishButton', DishButtonDirective);
 })();
+(function() {
+	'use strict';
+
+	angular.module('dish.cards', []);
+})();
+(function() {
+	'use strict';
+
+	var DEFAULT_RENDER_BUFFER = 3;
+
+	function CardRepeatDirective($window, $q) {
+		var invalid;
+		return {
+			restrict: 'A',
+			replace: true,
+			transclude: 'element',
+			link: postLink
+		};
+
+		function postLink(scope, elm, attrs, ctrl) {
+			console.log('dish cards', scope.ngModel);
+		}
+	}
+
+	CardRepeatDirective.$inject = ['$window', '$q'];
+
+	angular.module('dish.cards')
+		.directive('cardRepeat', CardRepeatDirective);
+})();
+'use strict';
+
+/*
+Copyright 2014 Ralph Thomas
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+(function() {
+// List of all listeners; dom element and listener object.
+var listeners = {};
+var listenerSequence = 0;
+var registeredGlobalListener = false;
+
+function addListener(domObject, listener) {
+    var key = 'touch-listener-' + (listenerSequence++);
+    listeners[key] = listener;
+    domObject.listenerKey = key;
+}
+function findListener(domObject) {
+    if (domObject && domObject.listenerKey && listeners.hasOwnProperty(domObject.listenerKey)) {
+        return listeners[domObject.listenerKey];
+    }
+    return null;
+}
+function registerGlobalListener() {
+    if (registeredGlobalListener) return;
+    registeredGlobalListener = true;
+
+    var touchInfo = { trackingID: -1, maxDy: 0, maxDx: 0 };
+    function touchStart(e) {
+        if (touchInfo.trackingID != -1) return;
+        var listener = findListener(e.target);
+        if (!listener) return;
+
+        e.preventDefault();
+        if (e.type == 'touchstart') {
+            touchInfo.trackingID = e.changedTouches[0].identifier;
+            touchInfo.x = e.changedTouches[0].pageX;
+            touchInfo.y = e.changedTouches[0].pageY;
+        } else {
+            touchInfo.trackingID = 'mouse';
+            touchInfo.x = e.screenX;
+            touchInfo.y = e.screenY;
+        }
+        touchInfo.maxDx = 0;
+        touchInfo.maxDy = 0;
+        touchInfo.historyX = [0];
+        touchInfo.historyY = [0];
+        touchInfo.historyTime = [e.timeStamp];
+        touchInfo.listener = listener;
+
+        if (listener.onTouchStart)
+            listener.onTouchStart();
+    }
+
+    function findDelta(e) {
+        if (e.type == 'touchmove' || e.type == 'touchend') {
+            for (var i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier == touchInfo.trackingID) {
+                    return {x: e.changedTouches[i].pageX - touchInfo.x, y: e.changedTouches[i].pageY - touchInfo.y};
+                }
+            }
+        } else {
+            return {x: e.screenX - touchInfo.x, y: e.screenY - touchInfo.y};
+        }
+        return null;
+    }
+
+    function touchMove(e) {
+        if (touchInfo.trackingID == -1) return;
+        e.preventDefault();
+        var delta = findDelta(e);
+        if (!delta) return;
+        touchInfo.maxDy = Math.max(touchInfo.maxDy, Math.abs(delta.y));
+        touchInfo.maxDx = Math.max(touchInfo.maxDx, Math.abs(delta.x));
+
+        // This is all for our crummy velocity computation method. We really
+        // should do least squares or anything at all better than just taking
+        // the difference between two random samples.
+        touchInfo.historyX.push(delta.x);
+        touchInfo.historyY.push(delta.y);
+        touchInfo.historyTime.push(e.timeStamp);
+        while (touchInfo.historyTime.length > 10) {
+            touchInfo.historyTime.shift();
+            touchInfo.historyX.shift();
+            touchInfo.historyY.shift();
+        }
+
+        if (touchInfo.listener && touchInfo.listener.onTouchMove)
+            touchInfo.listener.onTouchMove(delta.x, delta.y, e.timeStamp);
+    }
+
+    function touchEnd(e) {
+        if (touchInfo.trackingID == -1) return;
+        e.preventDefault();
+        var delta = findDelta(e);
+        if (!delta) return;
+
+        var listener = touchInfo.listener;
+        touchInfo.trackingID = -1;
+        touchInfo.listener = null;
+
+        // Compute velocity in the most atrocious way. Walk backwards until we find a sample that's 30ms away from
+        // our initial sample. If the samples are too distant (nothing between 30 and 50ms away then blow it off
+        // and declare zero velocity. Same if there are no samples.
+        var sampleCount = touchInfo.historyTime.length;
+        var velocity = { x: 0, y: 0 };
+        if (sampleCount > 2) {
+            var idx = touchInfo.historyTime.length - 1;
+            var lastTime = touchInfo.historyTime[idx];
+            var lastX = touchInfo.historyX[idx];
+            var lastY = touchInfo.historyY[idx];
+            var found = false;
+            while (idx > 0) {
+                idx--;
+                var t = touchInfo.historyTime[idx];
+                var dt = lastTime - t;
+                if (dt > 30 && dt < 50) {
+                    // Ok, go with this one.
+                    velocity.x = (lastX - touchInfo.historyX[idx]) / (dt / 1000);
+                    velocity.y = (lastY - touchInfo.historyY[idx]) / (dt / 1000);
+                    break;
+                }
+            }
+        }
+        touchInfo.historyTime = [];
+        touchInfo.historyX = [];
+        touchInfo.historyY = [];
+
+        if (listener && listener.onTouchEnd)
+            listener.onTouchEnd(delta.x, delta.y, velocity);
+    }
+
+    document.body.addEventListener('touchstart', touchStart, false);
+    document.body.addEventListener('touchmove', touchMove, false);
+    document.body.addEventListener('touchend', touchEnd, false);
+    document.body.addEventListener('mousedown', touchStart, false);
+    document.body.addEventListener('mousemove', touchMove, false);
+    document.body.addEventListener('mouseup', touchEnd, false);
+}
+
+//
+// This is a utility to normalize single-point touch events and mouse
+// events and implement very simple velocity tracking on top. To do
+// mouse we *must* install a global handler (otherwise you can quickly
+// drag the mouse out of the object you're dragging and you lose the
+// event stream), so just for symmetry we do the same with touch events.
+//
+// If I was writing a bigger app then I'd hope it was touch only and
+// would register touch handlers directly on the objects that need them
+// (although typically you have to do some global event handling anyway...).
+//
+// The `listener` object should implement `onTouchStart`, `onTouchMove` and
+// `onTouchEnd` methods.
+//
+function addTouchOrMouseListener(element, listener) {
+    registerGlobalListener();
+    addListener(element, listener);
+}
+
+
+window.addTouchOrMouseListener = addTouchOrMouseListener;
+})();
+
+/**
+ * Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
+ * Parts Copyright (C) Copyright (C) 1998-2000 Greg J. Badros
+ *
+ * Use of this source code is governed by http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * This is a compiled version of Cassowary/JS. For source versions or to
+ * contribute, see the github project:
+ *
+ *  https://github.com/slightlyoff/cassowary-js-refactor
+ *
+ */
+
+(function() {
+!function(a){"use strict";try{!function(){}.bind(a)}catch(b){Object.defineProperty(Function.prototype,"bind",{value:function(a){var b=this;return function(){return b.apply(a,arguments)}},enumerable:!1,configurable:!0,writable:!0})}var c="undefined"!=typeof a.HTMLElement,d=function(a){for(var b=null;a&&a!=Object.prototype;){if(a.tagName){b=a.tagName;break}a=a.prototype}return b||"div"},e=1e-8,f={},g=function(a,b){if(a&&b){if("function"==typeof a[b])return a[b];var c=a.prototype;if(c&&"function"==typeof c[b])return c[b];if(c!==Object.prototype&&c!==Function.prototype)return"function"==typeof a.__super__?g(a.__super__,b):void 0}},h=a.c=function(){return h._api?h._api.apply(this,arguments):void 0};h.debug=!1,h.trace=!1,h.verbose=!1,h.traceAdded=!1,h.GC=!1,h.GEQ=1,h.LEQ=2,h.inherit=function(b){var e=null,g=null;b["extends"]&&(g=b["extends"],delete b["extends"]),b.initialize&&(e=b.initialize,delete b.initialize);var i=e||function(){};Object.defineProperty(i,"__super__",{value:g?g:Object,enumerable:!1,configurable:!0,writable:!1}),b._t&&(f[b._t]=i);var j=i.prototype=Object.create(g?g.prototype:Object.prototype);if(h.extend(j,b),c&&g&&g.prototype instanceof a.HTMLElement){var k=i,l=d(j),m=function(a){return a.__proto__=j,k.apply(a,arguments),j.created&&a.created(),j.decorate&&a.decorate(),a};this.extend(j,{upgrade:m}),i=function(){return m(a.document.createElement(l))},i.prototype=j,this.extend(i,{ctor:k})}return i},h.own=function(b,c,d){return Object.getOwnPropertyNames(b).forEach(c,d||a),b},h.extend=function(a,b){return h.own(b,function(c){var d=Object.getOwnPropertyDescriptor(b,c);try{"function"==typeof d.get||"function"==typeof d.set?Object.defineProperty(a,c,d):"function"==typeof d.value||"_"===c.charAt(0)?(d.writable=!0,d.configurable=!0,d.enumerable=!1,Object.defineProperty(a,c,d)):a[c]=b[c]}catch(e){}}),a},h.traceprint=function(a){h.verbose&&console.log(a)},h.fnenterprint=function(a){console.log("* "+a)},h.fnexitprint=function(a){console.log("- "+a)},h.assert=function(a,b){if(!a)throw new h.InternalError("Assertion failed: "+b)};var i=function(a){return"number"==typeof a?h.Expression.fromConstant(a):a instanceof h.Variable?h.Expression.fromVariable(a):a};h.plus=function(a,b){return a=i(a),b=i(b),a.plus(b)},h.minus=function(a,b){return a=i(a),b=i(b),a.minus(b)},h.times=function(a,b){return a=i(a),b=i(b),a.times(b)},h.divide=function(a,b){return a=i(a),b=i(b),a.divide(b)},h.approx=function(a,b){return a===b?!0:(a=+a,b=+b,0==a?Math.abs(b)<e:0==b?Math.abs(a)<e:Math.abs(a-b)<Math.abs(a)*e)};var j=1;h._inc=function(){return j++},h.parseJSON=function(a){return JSON.parse(a,function(a,b){if("object"!=typeof b||"string"!=typeof b._t)return b;var c=b._t,d=f[c];if(c&&d){var e=g(d,"fromJSON");if(e)return e(b,d)}return b})},"function"==typeof define&&define.amd?define(h):"object"==typeof module&&module.exports?module.exports=h:a.c=h}(this),function(a){"use strict";var b=function(a,b){Object.keys(a).forEach(function(c){b[c]=a[c]})},c={};a.HashTable=a.inherit({initialize:function(){this.size=0,this._store={},this._keyStrMap={},this._deleted=0},set:function(a,b){var c=a.hashCode;"undefined"==typeof this._store[c]&&this.size++,this._store[c]=b,this._keyStrMap[c]=a},get:function(a){if(!this.size)return null;a=a.hashCode;var b=this._store[a];return"undefined"!=typeof b?this._store[a]:null},clear:function(){this.size=0,this._store={},this._keyStrMap={}},_compact:function(){var a={};b(this._store,a),this._store=a},_compactThreshold:100,_perhapsCompact:function(){this._size>30||this._deleted>this._compactThreshold&&(this._compact(),this._deleted=0)},"delete":function(a){a=a.hashCode,this._store.hasOwnProperty(a)&&(this._deleted++,delete this._store[a],this.size>0&&this.size--)},each:function(a,b){if(this.size){this._perhapsCompact();var c=this._store,d=this._keyStrMap;for(var e in this._store)this._store.hasOwnProperty(e)&&a.call(b||null,d[e],c[e])}},escapingEach:function(a,b){if(this.size){this._perhapsCompact();for(var d=this,e=this._store,f=this._keyStrMap,g=c,h=Object.keys(e),i=0;i<h.length;i++)if(function(c){d._store.hasOwnProperty(c)&&(g=a.call(b||null,f[c],e[c]))}(h[i]),g){if(void 0!==g.retval)return g;if(g.brk)break}}},clone:function(){var c=new a.HashTable;return this.size&&(c.size=this.size,b(this._store,c._store),b(this._keyStrMap,c._keyStrMap)),c},equals:function(b){if(b===this)return!0;if(!(b instanceof a.HashTable)||b._size!==this._size)return!1;for(var c=Object.keys(this._store),d=0;d<c.length;d++){var e=c[d];if(this._keyStrMap[e]!==b._keyStrMap[e]||this._store[e]!==b._store[e])return!1}return!0},toString:function(){var b="";return this.each(function(a,c){b+=a+" => "+c+"\n"}),b}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.HashSet=a.inherit({_t:"c.HashSet",initialize:function(){this.storage=[],this.size=0,this.hashCode=a._inc()},add:function(a){var b=this.storage;b.indexOf(a),-1==b.indexOf(a)&&(b[b.length]=a),this.size=this.storage.length},values:function(){return this.storage},has:function(a){var b=this.storage;return-1!=b.indexOf(a)},"delete":function(a){var b=this.storage.indexOf(a);return-1==b?null:(this.storage.splice(b,1)[0],this.size=this.storage.length,void 0)},clear:function(){this.storage.length=0},each:function(a,b){this.size&&this.storage.forEach(a,b)},escapingEach:function(a,b){this.size&&this.storage.forEach(a,b)},toString:function(){var a=this.size+" {",b=!0;return this.each(function(c){b?b=!1:a+=", ",a+=c}),a+="}\n"},toJSON:function(){var a=[];return this.each(function(b){a[a.length]=b.toJSON()}),{_t:"c.HashSet",data:a}},fromJSON:function(b){var c=new a.HashSet;return b.data&&(c.size=b.data.length,c.storage=b.data),c}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Error=a.inherit({initialize:function(a){a&&(this._description=a)},_name:"c.Error",_description:"An error has occured in Cassowary",set description(a){this._description=a},get description(){return"("+this._name+") "+this._description},get message(){return this.description},toString:function(){return this.description}});var b=function(b,c){return a.inherit({"extends":a.Error,initialize:function(){a.Error.apply(this,arguments)},_name:b||"",_description:c||""})};a.ConstraintNotFound=b("c.ConstraintNotFound","Tried to remove a constraint never added to the tableu"),a.InternalError=b("c.InternalError"),a.NonExpression=b("c.NonExpression","The resulting expression would be non"),a.NotEnoughStays=b("c.NotEnoughStays","There are not enough stays to give specific values to every variable"),a.RequiredFailure=b("c.RequiredFailure","A required constraint cannot be satisfied"),a.TooDifficult=b("c.TooDifficult","The constraints are too difficult to solve")}(this.c||module.parent.exports||{}),function(a){"use strict";var b=1e3;a.SymbolicWeight=a.inherit({_t:"c.SymbolicWeight",initialize:function(){this.value=0;for(var a=1,c=arguments.length-1;c>=0;--c)this.value+=arguments[c]*a,a*=b},toJSON:function(){return{_t:this._t,value:this.value}}})}(this.c||module.parent.exports||{}),function(a){a.Strength=a.inherit({initialize:function(b,c,d,e){this.name=b,this.symbolicWeight=c instanceof a.SymbolicWeight?c:new a.SymbolicWeight(c,d,e)},get required(){return this===a.Strength.required},toString:function(){return this.name+(this.isRequired?"":":"+this.symbolicWeight)}}),a.Strength.required=new a.Strength("<Required>",1e3,1e3,1e3),a.Strength.strong=new a.Strength("strong",1,0,0),a.Strength.medium=new a.Strength("medium",0,1,0),a.Strength.weak=new a.Strength("weak",0,0,1)}(this.c||("undefined"!=typeof module?module.parent.exports.c:{})),function(a){"use strict";a.AbstractVariable=a.inherit({isDummy:!1,isExternal:!1,isPivotable:!1,isRestricted:!1,_init:function(b,c){this.hashCode=a._inc(),this.name=(c||"")+this.hashCode,b&&("undefined"!=typeof b.name&&(this.name=b.name),"undefined"!=typeof b.value&&(this.value=b.value),"undefined"!=typeof b.prefix&&(this._prefix=b.prefix))},_prefix:"",name:"",value:0,valueOf:function(){return this.value},toJSON:function(){var a={};return this._t&&(a._t=this._t),this.name&&(a.name=this.name),"undefined"!=typeof this.value&&(a.value=this.value),this._prefix&&(a._prefix=this._prefix),this._t&&(a._t=this._t),a},fromJSON:function(b,c){var d=new c;return a.extend(d,b),d},toString:function(){return this._prefix+"["+this.name+":"+this.value+"]"}}),a.Variable=a.inherit({_t:"c.Variable","extends":a.AbstractVariable,initialize:function(b){this._init(b,"v");var c=a.Variable._map;c&&(c[this.name]=this)},isExternal:!0}),a.DummyVariable=a.inherit({_t:"c.DummyVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"d")},isDummy:!0,isRestricted:!0,value:"dummy"}),a.ObjectiveVariable=a.inherit({_t:"c.ObjectiveVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"o")},value:"obj"}),a.SlackVariable=a.inherit({_t:"c.SlackVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"s")},isPivotable:!0,isRestricted:!0,value:"slack"})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Point=a.inherit({initialize:function(b,c,d){if(b instanceof a.Variable)this._x=b;else{var e={value:b};d&&(e.name="x"+d),this._x=new a.Variable(e)}if(c instanceof a.Variable)this._y=c;else{var f={value:c};d&&(f.name="y"+d),this._y=new a.Variable(f)}},get x(){return this._x},set x(b){b instanceof a.Variable?this._x=b:this._x.value=b},get y(){return this._y},set y(b){b instanceof a.Variable?this._y=b:this._y.value=b},toString:function(){return"("+this.x+", "+this.y+")"}})}(this.c||module.parent.exports||{}),function(a){"use strict";var b=function(a,b){return"number"==typeof a?a:b};a.Expression=a.inherit({initialize:function(c,d,e){this.constant=b(e,0),this.terms=new a.HashTable,c instanceof a.AbstractVariable?(d=b(d,1),this.setVariable(c,d)):"number"==typeof c&&(isNaN(c)?console.trace():this.constant=c)},initializeFromHash:function(b,c){return a.verbose&&(console.log("*******************************"),console.log("clone c.initializeFromHash"),console.log("*******************************")),a.GC&&console.log("clone c.Expression"),this.constant=b,this.terms=c.clone(),this},multiplyMe:function(a){this.constant*=a;var b=this.terms;return b.each(function(c,d){b.set(c,d*a)}),this},clone:function(){a.verbose&&(console.log("*******************************"),console.log("clone c.Expression"),console.log("*******************************"));var b=a.Expression.empty();return b.initializeFromHash(this.constant,this.terms),b},times:function(b){if("number"==typeof b)return this.clone().multiplyMe(b);if(this.isConstant)return b.times(this.constant);if(b.isConstant)return this.times(b.constant);throw new a.NonExpression},plus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,1):b instanceof a.Variable?this.clone().addVariable(b,1):void 0},minus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,-1):b instanceof a.Variable?this.clone().addVariable(b,-1):void 0},divide:function(b){if("number"==typeof b){if(a.approx(b,0))throw new a.NonExpression;return this.times(1/b)}if(b instanceof a.Expression){if(!b.isConstant)throw new a.NonExpression;return this.times(1/b.constant)}},addExpression:function(c,d,e,f){return c instanceof a.AbstractVariable&&(c=a.Expression.fromVariable(c)),d=b(d,1),this.constant+=d*c.constant,c.terms.each(function(a,b){this.addVariable(a,b*d,e,f)},this),this},addVariable:function(b,c,d,e){null==c&&(c=1);var f=this.terms.get(b);if(f){var g=f+c;0==g||a.approx(g,0)?(e&&e.noteRemovedVariable(b,d),this.terms.delete(b)):this.setVariable(b,g)}else a.approx(c,0)||(this.setVariable(b,c),e&&e.noteAddedVariable(b,d));return this},setVariable:function(a,b){return this.terms.set(a,b),this},anyPivotableVariable:function(){if(this.isConstant)throw new a.InternalError("anyPivotableVariable called on a constant");var b=this.terms.escapingEach(function(a){return a.isPivotable?{retval:a}:void 0});return b&&void 0!==b.retval?b.retval:null},substituteOut:function(b,c,d,e){this.setVariable.bind(this);var g=this.terms,h=g.get(b);g.delete(b),this.constant+=h*c.constant,c.terms.each(function(b,c){var f=g.get(b);if(f){var i=f+h*c;a.approx(i,0)?(e.noteRemovedVariable(b,d),g.delete(b)):g.set(b,i)}else g.set(b,h*c),e&&e.noteAddedVariable(b,d)})},changeSubject:function(a,b){this.setVariable(a,this.newSubject(b))},newSubject:function(a){var b=1/this.terms.get(a);return this.terms.delete(a),this.multiplyMe(-b),b},coefficientFor:function(a){return this.terms.get(a)||0},get isConstant(){return 0==this.terms.size},toString:function(){var b="",c=!1;if(!a.approx(this.constant,0)||this.isConstant){if(b+=this.constant,this.isConstant)return b;c=!0}return this.terms.each(function(a,d){c&&(b+=" + "),b+=d+"*"+a,c=!0}),b},equals:function(b){return b===this?!0:b instanceof a.Expression&&b.constant===this.constant&&b.terms.equals(this.terms)},Plus:function(a,b){return a.plus(b)},Minus:function(a,b){return a.minus(b)},Times:function(a,b){return a.times(b)},Divide:function(a,b){return a.divide(b)}}),a.Expression.empty=function(){return new a.Expression(void 0,1,0)},a.Expression.fromConstant=function(b){return new a.Expression(b)},a.Expression.fromValue=function(b){return b=+b,new a.Expression(void 0,b,0)},a.Expression.fromVariable=function(b){return new a.Expression(b,1,0)}}(this.c||module.parent.exports||{}),function(a){"use strict";a.AbstractConstraint=a.inherit({initialize:function(b,c){this.hashCode=a._inc(),this.strength=b||a.Strength.required,this.weight=c||1},isEditConstraint:!1,isInequality:!1,isStayConstraint:!1,get required(){return this.strength===a.Strength.required},toString:function(){return this.strength+" {"+this.weight+"} ("+this.expression+")"}});var b=a.AbstractConstraint.prototype.toString,c=function(b,c,d){a.AbstractConstraint.call(this,c||a.Strength.strong,d),this.variable=b,this.expression=new a.Expression(b,-1,b.value)};a.EditConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isEditConstraint:!0,toString:function(){return"edit:"+b.call(this)}}),a.StayConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isStayConstraint:!0,toString:function(){return"stay:"+b.call(this)}});var d=a.Constraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(b,c,d){a.AbstractConstraint.call(this,c,d),this.expression=b}});a.Inequality=a.inherit({"extends":a.Constraint,_cloneOrNewCle:function(b){return b.clone?b.clone():new a.Expression(b)},initialize:function(b,c,e,f,g){var h=b instanceof a.Expression,i=e instanceof a.Expression,j=b instanceof a.AbstractVariable,k=e instanceof a.AbstractVariable,l="number"==typeof b,m="number"==typeof e;if((h||l)&&k){var n=b,o=c,p=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else if(j&&(i||m)){var n=e,o=c,p=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else{if(h&&m){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(l&&i){var s=e,o=c,t=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(h&&i){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(t),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(s));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(s),-1)}}else{if(h)return d.call(this,b,c,e);if(c==a.GEQ)d.call(this,new a.Expression(e),f,g),this.expression.multiplyMe(-1),this.expression.addVariable(b);else{if(c!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");d.call(this,new a.Expression(e),f,g),this.expression.addVariable(b,-1)}}}},isInequality:!0,toString:function(){return d.prototype.toString.call(this)+" >= 0) id: "+this.hashCode}}),a.Equation=a.inherit({"extends":a.Constraint,initialize:function(b,c,e,f){if(b instanceof a.Expression&&!c||c instanceof a.Strength)d.call(this,b,c,e);else if(b instanceof a.AbstractVariable&&c instanceof a.Expression){var g=b,h=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.AbstractVariable&&"number"==typeof c){var g=b,k=c,i=e,j=f;d.call(this,new a.Expression(k),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.Expression&&c instanceof a.AbstractVariable){var h=b,g=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else{if(!(b instanceof a.Expression||b instanceof a.AbstractVariable||"number"==typeof b)||!(c instanceof a.Expression||c instanceof a.AbstractVariable||"number"==typeof c))throw"Bad initializer to c.Equation";b=b instanceof a.Expression?b.clone():new a.Expression(b),c=c instanceof a.Expression?c.clone():new a.Expression(c),d.call(this,b,e,f),this.expression.addExpression(c,-1)}a.assert(this.strength instanceof a.Strength,"_strength not set")},toString:function(){return d.prototype.toString.call(this)+" = 0)"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.EditInfo=a.inherit({initialize:function(a,b,c,d,e){this.constraint=a,this.editPlus=b,this.editMinus=c,this.prevEditConstant=d,this.index=e},toString:function(){return"<cn="+this.constraint+", ep="+this.editPlus+", em="+this.editMinus+", pec="+this.prevEditConstant+", index="+this.index+">"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Tableau=a.inherit({initialize:function(){this.columns=new a.HashTable,this.rows=new a.HashTable,this._infeasibleRows=new a.HashSet,this._externalRows=new a.HashSet,this._externalParametricVars=new a.HashSet},noteRemovedVariable:function(b,c){a.trace&&console.log("c.Tableau::noteRemovedVariable: ",b,c);var d=this.columns.get(b);c&&d&&d.delete(c)},noteAddedVariable:function(a,b){b&&this.insertColVar(a,b)},getInternalInfo:function(){var a="Tableau Information:\n";return a+="Rows: "+this.rows.size,a+=" (= "+(this.rows.size-1)+" constraints)",a+="\nColumns: "+this.columns.size,a+="\nInfeasible Rows: "+this._infeasibleRows.size,a+="\nExternal basic variables: "+this._externalRows.size,a+="\nExternal parametric variables: ",a+=this._externalParametricVars.size,a+="\n"},toString:function(){var a="Tableau:\n";return this.rows.each(function(b,c){a+=b,a+=" <==> ",a+=c,a+="\n"}),a+="\nColumns:\n",a+=this.columns,a+="\nInfeasible rows: ",a+=this._infeasibleRows,a+="External basic variables: ",a+=this._externalRows,a+="External parametric variables: ",a+=this._externalParametricVars},insertColVar:function(b,c){var d=this.columns.get(b);d||(d=new a.HashSet,this.columns.set(b,d)),d.add(c)},addRow:function(b,c){a.trace&&a.fnenterprint("addRow: "+b+", "+c),this.rows.set(b,c),c.terms.each(function(a){this.insertColVar(a,b),a.isExternal&&this._externalParametricVars.add(a)},this),b.isExternal&&this._externalRows.add(b),a.trace&&a.traceprint(this.toString())},removeColumn:function(b){a.trace&&a.fnenterprint("removeColumn:"+b);var c=this.columns.get(b);c?(this.columns.delete(b),c.each(function(a){var c=this.rows.get(a);c.terms.delete(b)},this)):a.trace&&console.log("Could not find var",b,"in columns"),b.isExternal&&(this._externalRows.delete(b),this._externalParametricVars.delete(b))},removeRow:function(b){a.trace&&a.fnenterprint("removeRow:"+b);var c=this.rows.get(b);return a.assert(null!=c),c.terms.each(function(c){var e=this.columns.get(c);null!=e&&(a.trace&&console.log("removing from varset:",b),e.delete(b))},this),this._infeasibleRows.delete(b),b.isExternal&&this._externalRows.delete(b),this.rows.delete(b),a.trace&&a.fnexitprint("returning "+c),c},substituteOut:function(b,c){a.trace&&a.fnenterprint("substituteOut:"+b+", "+c),a.trace&&a.traceprint(this.toString());var d=this.columns.get(b);d.each(function(a){var d=this.rows.get(a);d.substituteOut(b,c,a,this),a.isRestricted&&d.constant<0&&this._infeasibleRows.add(a)},this),b.isExternal&&(this._externalRows.add(b),this._externalParametricVars.delete(b)),this.columns.delete(b)},columnsHasKey:function(a){return!!this.columns.get(a)}})}(this.c||module.parent.exports||{}),function(a){var b=a.Tableau,c=b.prototype,d=1e-8,e=a.Strength.weak;a.SimplexSolver=a.inherit({"extends":a.Tableau,initialize:function(){a.Tableau.call(this),this._stayMinusErrorVars=[],this._stayPlusErrorVars=[],this._errorVars=new a.HashTable,this._markerVars=new a.HashTable,this._objective=new a.ObjectiveVariable({name:"Z"}),this._editVarMap=new a.HashTable,this._editVarList=[],this._slackCounter=0,this._artificialCounter=0,this._dummyCounter=0,this.autoSolve=!0,this._needsSolving=!1,this._optimizeCount=0,this.rows.set(this._objective,a.Expression.empty()),this._editVariableStack=[0],a.trace&&a.traceprint("objective expr == "+this.rows.get(this._objective))},add:function(){for(var a=0;a<arguments.length;a++)this.addConstraint(arguments[a]);return this},_addEditConstraint:function(b,c,d){var e=this._editVarMap.size,f=c[0],g=c[1],h=new a.EditInfo(b,f,g,d,e);this._editVarMap.set(b.variable,h),this._editVarList[e]={v:b.variable,info:h}},addConstraint:function(b){a.trace&&a.fnenterprint("addConstraint: "+b);var c=new Array(2),d=new Array(1),e=this.newExpression(b,c,d);return d=d[0],this.tryAddingDirectly(e)||this.addWithArtificialVariable(e),this._needsSolving=!0,b.isEditConstraint&&this._addEditConstraint(b,c,d),this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},addConstraintNoException:function(b){a.trace&&a.fnenterprint("addConstraintNoException: "+b);try{return this.addConstraint(b),!0}catch(c){return!1}},addEditVar:function(b,c,d){return a.trace&&a.fnenterprint("addEditVar: "+b+" @ "+c+" {"+d+"}"),this.addConstraint(new a.EditConstraint(b,c||a.Strength.strong,d))},beginEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this._infeasibleRows.clear(),this._resetStayConstants(),this._editVariableStack[this._editVariableStack.length]=this._editVarMap.size,this},endEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this.resolve(),this._editVariableStack.pop(),this.removeEditVarsTo(this._editVariableStack[this._editVariableStack.length-1]),this},removeAllEditVars:function(){return this.removeEditVarsTo(0)},removeEditVarsTo:function(b){try{for(var c=this._editVarList.length,d=b;c>d;d++)this._editVarList[d]&&this.removeConstraint(this._editVarMap.get(this._editVarList[d].v).constraint);return this._editVarList.length=b,a.assert(this._editVarMap.size==b,"_editVarMap.size == n"),this}catch(e){throw new a.InternalError("Constraint not found in removeEditVarsTo")}},addPointStays:function(b){return a.trace&&console.log("addPointStays",b),b.forEach(function(a,b){this.addStay(a.x,e,Math.pow(2,b)),this.addStay(a.y,e,Math.pow(2,b))},this),this},addStay:function(b,c,d){var f=new a.StayConstraint(b,c||e,d||1);return this.addConstraint(f)},removeConstraint:function(b){a.trace&&a.fnenterprint("removeConstraintInternal: "+b),a.trace&&a.traceprint(this.toString()),this._needsSolving=!0,this._resetStayConstants();var c=this.rows.get(this._objective),d=this._errorVars.get(b);a.trace&&a.traceprint("eVars == "+d),null!=d&&d.each(function(e){var f=this.rows.get(e);null==f?c.addVariable(e,-b.weight*b.strength.symbolicWeight.value,this._objective,this):c.addExpression(f,-b.weight*b.strength.symbolicWeight.value,this._objective,this),a.trace&&a.traceprint("now eVars == "+d)},this);var e=this._markerVars.get(b);if(this._markerVars.delete(b),null==e)throw new a.InternalError("Constraint not found in removeConstraintInternal");if(a.trace&&a.traceprint("Looking to remove var "+e),null==this.rows.get(e)){var f=this.columns.get(e);a.trace&&a.traceprint("Must pivot -- columns are "+f);var g=null,h=0;f.each(function(b){if(b.isRestricted){var c=this.rows.get(b),d=c.coefficientFor(e);if(a.trace&&a.traceprint("Marker "+e+"'s coefficient in "+c+" is "+d),0>d){var f=-c.constant/d;(null==g||h>f||a.approx(f,h)&&b.hashCode<g.hashCode)&&(h=f,g=b)}}},this),null==g&&(a.trace&&a.traceprint("exitVar is still null"),f.each(function(a){if(a.isRestricted){var b=this.rows.get(a),c=b.coefficientFor(e),d=b.constant/c;(null==g||h>d)&&(h=d,g=a)}},this)),null==g&&(0==f.size?this.removeColumn(e):f.escapingEach(function(a){return a!=this._objective?(g=a,{brk:!0}):void 0},this)),null!=g&&this.pivot(e,g)}if(null!=this.rows.get(e)&&this.removeRow(e),null!=d&&d.each(function(a){a!=e&&this.removeColumn(a)},this),b.isStayConstraint){if(null!=d)for(var j=0;j<this._stayPlusErrorVars.length;j++)d.delete(this._stayPlusErrorVars[j]),d.delete(this._stayMinusErrorVars[j])}else if(b.isEditConstraint){a.assert(null!=d,"eVars != null");var k=this._editVarMap.get(b.variable);this.removeColumn(k.editMinus),this._editVarMap.delete(b.variable)}return null!=d&&this._errorVars.delete(d),this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},reset:function(){throw a.trace&&a.fnenterprint("reset"),new a.InternalError("reset not implemented")},resolveArray:function(b){a.trace&&a.fnenterprint("resolveArray"+b);var c=b.length;this._editVarMap.each(function(a,d){var e=d.index;c>e&&this.suggestValue(a,b[e])},this),this.resolve()},resolvePair:function(a,b){this.suggestValue(this._editVarList[0].v,a),this.suggestValue(this._editVarList[1].v,b),this.resolve()},resolve:function(){a.trace&&a.fnenterprint("resolve()"),this.dualOptimize(),this._setExternalVariables(),this._infeasibleRows.clear(),this._resetStayConstants()},suggestValue:function(b,c){a.trace&&console.log("suggestValue("+b+", "+c+")");var d=this._editVarMap.get(b);if(!d)throw new a.Error("suggestValue for variable "+b+", but var is not an edit variable");var e=c-d.prevEditConstant;return d.prevEditConstant=c,this.deltaEditConstant(e,d.editPlus,d.editMinus),this},solve:function(){return this._needsSolving&&(this.optimize(this._objective),this._setExternalVariables()),this},setEditedValue:function(b,c){if(!this.columnsHasKey(b)&&null==this.rows.get(b))return b.value=c,this;if(!a.approx(c,b.value)){this.addEditVar(b),this.beginEdit();try{this.suggestValue(b,c)}catch(d){throw new a.InternalError("Error in setEditedValue")}this.endEdit()}return this},addVar:function(b){if(!this.columnsHasKey(b)&&null==this.rows.get(b)){try{this.addStay(b)}catch(c){throw new a.InternalError("Error in addVar -- required failure is impossible")}a.trace&&a.traceprint("added initial stay on "+b)}return this},getInternalInfo:function(){var a=c.getInternalInfo.call(this);return a+="\nSolver info:\n",a+="Stay Error Variables: ",a+=this._stayPlusErrorVars.length+this._stayMinusErrorVars.length,a+=" ("+this._stayPlusErrorVars.length+" +, ",a+=this._stayMinusErrorVars.length+" -)\n",a+="Edit Variables: "+this._editVarMap.size,a+="\n"},getDebugInfo:function(){return this.toString()+this.getInternalInfo()+"\n"},toString:function(){var a=c.getInternalInfo.call(this);return a+="\n_stayPlusErrorVars: ",a+="["+this._stayPlusErrorVars+"]",a+="\n_stayMinusErrorVars: ",a+="["+this._stayMinusErrorVars+"]",a+="\n",a+="_editVarMap:\n"+this._editVarMap,a+="\n"},addWithArtificialVariable:function(b){a.trace&&a.fnenterprint("addWithArtificialVariable: "+b);var c=new a.SlackVariable({value:++this._artificialCounter,prefix:"a"}),d=new a.ObjectiveVariable({name:"az"}),e=b.clone();a.trace&&a.traceprint("before addRows:\n"+this),this.addRow(d,e),this.addRow(c,b),a.trace&&a.traceprint("after addRows:\n"+this),this.optimize(d);var f=this.rows.get(d);if(a.trace&&a.traceprint("azTableauRow.constant == "+f.constant),!a.approx(f.constant,0))throw this.removeRow(d),this.removeColumn(c),new a.RequiredFailure;var g=this.rows.get(c);if(null!=g){if(g.isConstant)return this.removeRow(c),this.removeRow(d),void 0;var h=g.anyPivotableVariable();this.pivot(h,c)}a.assert(null==this.rows.get(c),"rowExpression(av) == null"),this.removeColumn(c),this.removeRow(d)},tryAddingDirectly:function(b){a.trace&&a.fnenterprint("tryAddingDirectly: "+b);var c=this.chooseSubject(b);return null==c?(a.trace&&a.fnexitprint("returning false"),!1):(b.newSubject(c),this.columnsHasKey(c)&&this.substituteOut(c,b),this.addRow(c,b),a.trace&&a.fnexitprint("returning true"),!0)},chooseSubject:function(b){a.trace&&a.fnenterprint("chooseSubject: "+b);var c=null,d=!1,e=!1,f=b.terms,g=f.escapingEach(function(a,b){if(d){if(!a.isRestricted&&!this.columnsHasKey(a))return{retval:a}}else if(a.isRestricted){if(!e&&!a.isDummy&&0>b){var f=this.columns.get(a);(null==f||1==f.size&&this.columnsHasKey(this._objective))&&(c=a,e=!0)}}else c=a,d=!0},this);if(g&&void 0!==g.retval)return g.retval;if(null!=c)return c;var h=0,g=f.escapingEach(function(a,b){return a.isDummy?(this.columnsHasKey(a)||(c=a,h=b),void 0):{retval:null}},this);if(g&&void 0!==g.retval)return g.retval;if(!a.approx(b.constant,0))throw new a.RequiredFailure;return h>0&&b.multiplyMe(-1),c},deltaEditConstant:function(b,c,d){a.trace&&a.fnenterprint("deltaEditConstant :"+b+", "+c+", "+d);var e=this.rows.get(c);if(null!=e)return e.constant+=b,e.constant<0&&this._infeasibleRows.add(c),void 0;var f=this.rows.get(d);if(null!=f)return f.constant+=-b,f.constant<0&&this._infeasibleRows.add(d),void 0;var g=this.columns.get(d);g||console.log("columnVars is null -- tableau is:\n"+this),g.each(function(a){var c=this.rows.get(a),e=c.coefficientFor(d);c.constant+=e*b,a.isRestricted&&c.constant<0&&this._infeasibleRows.add(a)},this)},dualOptimize:function(){a.trace&&a.fnenterprint("dualOptimize:");for(var b=this.rows.get(this._objective);this._infeasibleRows.size;){var c=this._infeasibleRows.values()[0];this._infeasibleRows.delete(c);var d=null,e=this.rows.get(c);if(e&&e.constant<0){var g,f=Number.MAX_VALUE,h=e.terms;if(h.each(function(c,e){if(e>0&&c.isPivotable){var h=b.coefficientFor(c);g=h/e,(f>g||a.approx(g,f)&&c.hashCode<d.hashCode)&&(d=c,f=g)}}),f==Number.MAX_VALUE)throw new a.InternalError("ratio == nil (MAX_VALUE) in dualOptimize");this.pivot(d,c)}}},newExpression:function(b,c,d){a.trace&&(a.fnenterprint("newExpression: "+b),a.traceprint("cn.isInequality == "+b.isInequality),a.traceprint("cn.required == "+b.required));var e=b.expression,f=a.Expression.fromConstant(e.constant),g=new a.SlackVariable,h=new a.DummyVariable,i=new a.SlackVariable,j=new a.SlackVariable,k=e.terms;if(k.each(function(a,b){var c=this.rows.get(a);c?f.addExpression(c,b):f.addVariable(a,b)},this),b.isInequality){if(a.trace&&a.traceprint("Inequality, adding slack"),++this._slackCounter,g=new a.SlackVariable({value:this._slackCounter,prefix:"s"}),f.setVariable(g,-1),this._markerVars.set(b,g),!b.required){++this._slackCounter,i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(i,1);var l=this.rows.get(this._objective);l.setVariable(i,b.strength.symbolicWeight.value*b.weight),this.insertErrorVar(b,i),this.noteAddedVariable(i,this._objective)}}else if(b.required)a.trace&&a.traceprint("Equality, required"),++this._dummyCounter,h=new a.DummyVariable({value:this._dummyCounter,prefix:"d"}),c[0]=h,c[1]=h,d[0]=e.constant,f.setVariable(h,1),this._markerVars.set(b,h),a.trace&&a.traceprint("Adding dummyVar == d"+this._dummyCounter);else{a.trace&&a.traceprint("Equality, not required"),++this._slackCounter,j=new a.SlackVariable({value:this._slackCounter,prefix:"ep"}),i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(j,-1),f.setVariable(i,1),this._markerVars.set(b,j);
+var l=this.rows.get(this._objective);a.trace&&console.log(l);var m=b.strength.symbolicWeight.value*b.weight;0==m&&(a.trace&&a.traceprint("cn == "+b),a.trace&&a.traceprint("adding "+j+" and "+i+" with swCoeff == "+m)),l.setVariable(j,m),this.noteAddedVariable(j,this._objective),l.setVariable(i,m),this.noteAddedVariable(i,this._objective),this.insertErrorVar(b,i),this.insertErrorVar(b,j),b.isStayConstraint?(this._stayPlusErrorVars[this._stayPlusErrorVars.length]=j,this._stayMinusErrorVars[this._stayMinusErrorVars.length]=i):b.isEditConstraint&&(c[0]=j,c[1]=i,d[0]=e.constant)}return f.constant<0&&f.multiplyMe(-1),a.trace&&a.fnexitprint("returning "+f),f},optimize:function(b){a.trace&&a.fnenterprint("optimize: "+b),a.trace&&a.traceprint(this.toString()),this._optimizeCount++;var c=this.rows.get(b);a.assert(null!=c,"zRow != null");for(var g,h,e=null,f=null;;){if(g=0,h=c.terms,h.escapingEach(function(a,b){return a.isPivotable&&g>b?(g=b,e=a,{brk:1}):void 0},this),g>=-d)return;a.trace&&console.log("entryVar:",e,"objectiveCoeff:",g);var i=Number.MAX_VALUE,j=this.columns.get(e),k=0;if(j.each(function(b){if(a.trace&&a.traceprint("Checking "+b),b.isPivotable){var c=this.rows.get(b),d=c.coefficientFor(e);a.trace&&a.traceprint("pivotable, coeff = "+d),0>d&&(k=-c.constant/d,(i>k||a.approx(k,i)&&b.hashCode<f.hashCode)&&(i=k,f=b))}},this),i==Number.MAX_VALUE)throw new a.InternalError("Objective function is unbounded in optimize");this.pivot(e,f),a.trace&&a.traceprint(this.toString())}},pivot:function(b,c){a.trace&&console.log("pivot: ",b,c);var d=!1;d&&console.time(" SimplexSolver::pivot"),null==b&&console.warn("pivot: entryVar == null"),null==c&&console.warn("pivot: exitVar == null"),d&&console.time("  removeRow");var e=this.removeRow(c);d&&console.timeEnd("  removeRow"),d&&console.time("  changeSubject"),e.changeSubject(c,b),d&&console.timeEnd("  changeSubject"),d&&console.time("  substituteOut"),this.substituteOut(b,e),d&&console.timeEnd("  substituteOut"),d&&console.time("  addRow"),this.addRow(b,e),d&&console.timeEnd("  addRow"),d&&console.timeEnd(" SimplexSolver::pivot")},_resetStayConstants:function(){a.trace&&console.log("_resetStayConstants");for(var b=this._stayPlusErrorVars,c=b.length,d=0;c>d;d++){var e=this.rows.get(b[d]);null===e&&(e=this.rows.get(this._stayMinusErrorVars[d])),null!=e&&(e.constant=0)}},_setExternalVariables:function(){a.trace&&a.fnenterprint("_setExternalVariables:"),a.trace&&a.traceprint(this.toString());var b={};this._externalParametricVars.each(function(c){null!=this.rows.get(c)?a.trace&&console.log("Error: variable"+c+" in _externalParametricVars is basic"):(c.value=0,b[c.name]=0)},this),this._externalRows.each(function(a){var c=this.rows.get(a);a.value!=c.constant&&(a.value=c.constant,b[a.name]=c.constant)},this),this._changed=b,this._needsSolving=!1,this._informCallbacks(),this.onsolved()},onsolved:function(){},_informCallbacks:function(){if(this._callbacks){var a=this._changed;this._callbacks.forEach(function(b){b(a)})}},_addCallback:function(a){var b=this._callbacks||(this._callbacks=[]);b[b.length]=a},insertErrorVar:function(b,c){a.trace&&a.fnenterprint("insertErrorVar:"+b+", "+c);var d=this._errorVars.get(c);d||(d=new a.HashSet,this._errorVars.set(b,d)),d.add(c)}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Timer=a.inherit({initialize:function(){this.isRunning=!1,this._elapsedMs=0},start:function(){return this.isRunning=!0,this._startReading=new Date,this},stop:function(){return this.isRunning=!1,this._elapsedMs+=new Date-this._startReading,this},reset:function(){return this.isRunning=!1,this._elapsedMs=0,this},elapsedTime:function(){return this.isRunning?(this._elapsedMs+(new Date-this._startReading))/1e3:this._elapsedMs/1e3}})}(this.c||module.parent.exports||{}),this.c.parser=function(){function a(a,b){function c(){this.constructor=a}c.prototype=b.prototype,a.prototype=new c}function b(a,b,c,d,e,f){this.message=a,this.expected=b,this.found=c,this.offset=d,this.line=e,this.column=f,this.name="SyntaxError"}function c(a){function Ub(b){function c(b,c,d){var e,f;for(e=c;d>e;e++)f=a.charAt(e),"\n"===f?(b.seenCR||b.line++,b.column=1,b.seenCR=!1):"\r"===f||"\u2028"===f||"\u2029"===f?(b.line++,b.column=1,b.seenCR=!0):(b.column++,b.seenCR=!1)}return Ib!==b&&(Ib>b&&(Ib=0,Jb={line:1,column:1,seenCR:!1}),c(Jb,Ib,b),Ib=b),Jb}function Vb(a){Kb>Gb||(Gb>Kb&&(Kb=Gb,Lb=[]),Lb.push(a))}function Wb(c,d,e){function f(a){var b=1;for(a.sort(function(a,b){return a.description<b.description?-1:a.description>b.description?1:0});b<a.length;)a[b-1]===a[b]?a.splice(b,1):b++}function g(a,b){function c(a){function b(a){return a.charCodeAt(0).toString(16).toUpperCase()}return a.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\x08/g,"\\b").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\f/g,"\\f").replace(/\r/g,"\\r").replace(/[\x00-\x07\x0B\x0E\x0F]/g,function(a){return"\\x0"+b(a)}).replace(/[\x10-\x1F\x80-\xFF]/g,function(a){return"\\x"+b(a)}).replace(/[\u0180-\u0FFF]/g,function(a){return"\\u0"+b(a)}).replace(/[\u1080-\uFFFF]/g,function(a){return"\\u"+b(a)})}var e,f,g,d=new Array(a.length);for(g=0;g<a.length;g++)d[g]=a[g].description;return e=a.length>1?d.slice(0,-1).join(", ")+" or "+d[a.length-1]:d[0],f=b?'"'+c(b)+'"':"end of input","Expected "+e+" but "+f+" found."}var h=Ub(e),i=e<a.length?a.charAt(e):null;return null!==d&&f(d),new b(null!==c?c:g(d,i),d,i,e,h.line,h.column)}function Xb(){var a,b,c,e;if(a=Gb,b=jc(),b!==d){for(c=[],e=Yb();e!==d;)c.push(e),e=Yb();c!==d?(e=jc(),e!==d?(Hb=a,b=i(c),a=b):(Gb=a,a=g)):(Gb=a,a=g)}else Gb=a,a=g;return a}function Yb(){var a,b,c;return a=Gb,b=zc(),b!==d?(c=cc(),c!==d?(Hb=a,b=j(b),a=b):(Gb=a,a=g)):(Gb=a,a=g),a}function Zb(){var b;return a.length>Gb?(b=a.charAt(Gb),Gb++):(b=d,0===Mb&&Vb(k)),b}function $b(){var b;return l.test(a.charAt(Gb))?(b=a.charAt(Gb),Gb++):(b=d,0===Mb&&Vb(m)),b===d&&(36===a.charCodeAt(Gb)?(b=n,Gb++):(b=d,0===Mb&&Vb(o)),b===d&&(95===a.charCodeAt(Gb)?(b=p,Gb++):(b=d,0===Mb&&Vb(q)))),b}function _b(){var b,c;return Mb++,s.test(a.charAt(Gb))?(b=a.charAt(Gb),Gb++):(b=d,0===Mb&&Vb(t)),Mb--,b===d&&(c=d,0===Mb&&Vb(r)),b}function ac(){var b;return u.test(a.charAt(Gb))?(b=a.charAt(Gb),Gb++):(b=d,0===Mb&&Vb(v)),b}function bc(){var b,c;return Mb++,10===a.charCodeAt(Gb)?(b=x,Gb++):(b=d,0===Mb&&Vb(y)),b===d&&(a.substr(Gb,2)===z?(b=z,Gb+=2):(b=d,0===Mb&&Vb(A)),b===d&&(13===a.charCodeAt(Gb)?(b=B,Gb++):(b=d,0===Mb&&Vb(C)),b===d&&(8232===a.charCodeAt(Gb)?(b=D,Gb++):(b=d,0===Mb&&Vb(E)),b===d&&(8233===a.charCodeAt(Gb)?(b=F,Gb++):(b=d,0===Mb&&Vb(G)))))),Mb--,b===d&&(c=d,0===Mb&&Vb(w)),b}function cc(){var b,c,e;return b=Gb,c=jc(),c!==d?(59===a.charCodeAt(Gb)?(e=H,Gb++):(e=d,0===Mb&&Vb(I)),e!==d?(c=[c,e],b=c):(Gb=b,b=g)):(Gb=b,b=g),b===d&&(b=Gb,c=ic(),c!==d?(e=bc(),e!==d?(c=[c,e],b=c):(Gb=b,b=g)):(Gb=b,b=g),b===d&&(b=Gb,c=jc(),c!==d?(e=dc(),e!==d?(c=[c,e],b=c):(Gb=b,b=g)):(Gb=b,b=g))),b}function dc(){var b,c;return b=Gb,Mb++,a.length>Gb?(c=a.charAt(Gb),Gb++):(c=d,0===Mb&&Vb(k)),Mb--,c===d?b=J:(Gb=b,b=g),b}function ec(){var a,b;return Mb++,a=fc(),a===d&&(a=hc()),Mb--,a===d&&(b=d,0===Mb&&Vb(K)),a}function fc(){var b,c,e,f,h,i;if(b=Gb,a.substr(Gb,2)===L?(c=L,Gb+=2):(c=d,0===Mb&&Vb(M)),c!==d){for(e=[],f=Gb,h=Gb,Mb++,a.substr(Gb,2)===N?(i=N,Gb+=2):(i=d,0===Mb&&Vb(O)),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);f!==d;)e.push(f),f=Gb,h=Gb,Mb++,a.substr(Gb,2)===N?(i=N,Gb+=2):(i=d,0===Mb&&Vb(O)),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);e!==d?(a.substr(Gb,2)===N?(f=N,Gb+=2):(f=d,0===Mb&&Vb(O)),f!==d?(c=[c,e,f],b=c):(Gb=b,b=g)):(Gb=b,b=g)}else Gb=b,b=g;return b}function gc(){var b,c,e,f,h,i;if(b=Gb,a.substr(Gb,2)===L?(c=L,Gb+=2):(c=d,0===Mb&&Vb(M)),c!==d){for(e=[],f=Gb,h=Gb,Mb++,a.substr(Gb,2)===N?(i=N,Gb+=2):(i=d,0===Mb&&Vb(O)),i===d&&(i=ac()),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);f!==d;)e.push(f),f=Gb,h=Gb,Mb++,a.substr(Gb,2)===N?(i=N,Gb+=2):(i=d,0===Mb&&Vb(O)),i===d&&(i=ac()),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);e!==d?(a.substr(Gb,2)===N?(f=N,Gb+=2):(f=d,0===Mb&&Vb(O)),f!==d?(c=[c,e,f],b=c):(Gb=b,b=g)):(Gb=b,b=g)}else Gb=b,b=g;return b}function hc(){var b,c,e,f,h,i;if(b=Gb,a.substr(Gb,2)===P?(c=P,Gb+=2):(c=d,0===Mb&&Vb(Q)),c!==d){for(e=[],f=Gb,h=Gb,Mb++,i=ac(),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);f!==d;)e.push(f),f=Gb,h=Gb,Mb++,i=ac(),Mb--,i===d?h=J:(Gb=h,h=g),h!==d?(i=Zb(),i!==d?(h=[h,i],f=h):(Gb=f,f=g)):(Gb=f,f=g);e!==d?(f=ac(),f===d&&(f=dc()),f!==d?(c=[c,e,f],b=c):(Gb=b,b=g)):(Gb=b,b=g)}else Gb=b,b=g;return b}function ic(){var a,b;for(a=[],b=_b(),b===d&&(b=gc(),b===d&&(b=hc()));b!==d;)a.push(b),b=_b(),b===d&&(b=gc(),b===d&&(b=hc()));return a}function jc(){var a,b;for(a=[],b=_b(),b===d&&(b=bc(),b===d&&(b=ec()));b!==d;)a.push(b),b=_b(),b===d&&(b=bc(),b===d&&(b=ec()));return a}function kc(){var a,b;return a=Gb,b=mc(),b===d&&(b=lc()),b!==d&&(Hb=a,b=R(b)),a=b}function lc(){var b,c,e;if(b=Gb,c=[],S.test(a.charAt(Gb))?(e=a.charAt(Gb),Gb++):(e=d,0===Mb&&Vb(T)),e!==d)for(;e!==d;)c.push(e),S.test(a.charAt(Gb))?(e=a.charAt(Gb),Gb++):(e=d,0===Mb&&Vb(T));else c=g;return c!==d&&(Hb=b,c=U(c)),b=c}function mc(){var b,c,e,f,h;return b=Gb,c=Gb,e=lc(),e!==d?(46===a.charCodeAt(Gb)?(f=V,Gb++):(f=d,0===Mb&&Vb(W)),f!==d?(h=lc(),h!==d?(e=[e,f,h],c=e):(Gb=c,c=g)):(Gb=c,c=g)):(Gb=c,c=g),c!==d&&(Hb=b,c=X(c)),b=c}function oc(){var a,b;return Mb++,a=Gb,b=pc(),b!==d&&(Hb=a,b=ab(b)),a=b,Mb--,a===d&&(b=d,0===Mb&&Vb(_)),a}function pc(){var a,b,c,e;if(Mb++,a=Gb,b=$b(),b!==d){for(c=[],e=$b();e!==d;)c.push(e),e=$b();c!==d?(Hb=a,b=bb(b,c),a=b):(Gb=a,a=g)}else Gb=a,a=g;return Mb--,a===d&&(b=d,0===Mb&&Vb(_)),a}function qc(){var b,c,e,f,h,i;return b=Gb,c=oc(),c!==d&&(Hb=b,c=cb(c)),b=c,b===d&&(b=kc(),b===d&&(b=Gb,40===a.charCodeAt(Gb)?(c=db,Gb++):(c=d,0===Mb&&Vb(eb)),c!==d?(e=jc(),e!==d?(f=zc(),f!==d?(h=jc(),h!==d?(41===a.charCodeAt(Gb)?(i=fb,Gb++):(i=d,0===Mb&&Vb(gb)),i!==d?(Hb=b,c=j(f),b=c):(Gb=b,b=g)):(Gb=b,b=g)):(Gb=b,b=g)):(Gb=b,b=g)):(Gb=b,b=g))),b}function rc(){var a,b,c,e;return a=qc(),a===d&&(a=Gb,b=sc(),b!==d?(c=jc(),c!==d?(e=rc(),e!==d?(Hb=a,b=hb(b,e),a=b):(Gb=a,a=g)):(Gb=a,a=g)):(Gb=a,a=g)),a}function sc(){var b;return 43===a.charCodeAt(Gb)?(b=ib,Gb++):(b=d,0===Mb&&Vb(jb)),b===d&&(45===a.charCodeAt(Gb)?(b=kb,Gb++):(b=d,0===Mb&&Vb(lb)),b===d&&(33===a.charCodeAt(Gb)?(b=mb,Gb++):(b=d,0===Mb&&Vb(nb)))),b}function tc(){var a,b,c,e,f,h,i,j;if(a=Gb,b=rc(),b!==d){for(c=[],e=Gb,f=jc(),f!==d?(h=uc(),h!==d?(i=jc(),i!==d?(j=rc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);e!==d;)c.push(e),e=Gb,f=jc(),f!==d?(h=uc(),h!==d?(i=jc(),i!==d?(j=rc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);c!==d?(Hb=a,b=ob(b,c),a=b):(Gb=a,a=g)}else Gb=a,a=g;return a}function uc(){var b;return 42===a.charCodeAt(Gb)?(b=pb,Gb++):(b=d,0===Mb&&Vb(qb)),b===d&&(47===a.charCodeAt(Gb)?(b=rb,Gb++):(b=d,0===Mb&&Vb(sb))),b}function vc(){var a,b,c,e,f,h,i,j;if(a=Gb,b=tc(),b!==d){for(c=[],e=Gb,f=jc(),f!==d?(h=wc(),h!==d?(i=jc(),i!==d?(j=tc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);e!==d;)c.push(e),e=Gb,f=jc(),f!==d?(h=wc(),h!==d?(i=jc(),i!==d?(j=tc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);c!==d?(Hb=a,b=tb(b,c),a=b):(Gb=a,a=g)}else Gb=a,a=g;return a}function wc(){var b;return 43===a.charCodeAt(Gb)?(b=ib,Gb++):(b=d,0===Mb&&Vb(jb)),b===d&&(45===a.charCodeAt(Gb)?(b=kb,Gb++):(b=d,0===Mb&&Vb(lb))),b}function xc(){var a,b,c,e,f,h,i,j;if(a=Gb,b=vc(),b!==d){for(c=[],e=Gb,f=jc(),f!==d?(h=yc(),h!==d?(i=jc(),i!==d?(j=vc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);e!==d;)c.push(e),e=Gb,f=jc(),f!==d?(h=yc(),h!==d?(i=jc(),i!==d?(j=vc(),j!==d?(f=[f,h,i,j],e=f):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g)):(Gb=e,e=g);c!==d?(Hb=a,b=ub(b,c),a=b):(Gb=a,a=g)}else Gb=a,a=g;return a}function yc(){var b;return a.substr(Gb,2)===vb?(b=vb,Gb+=2):(b=d,0===Mb&&Vb(wb)),b===d&&(a.substr(Gb,2)===xb?(b=xb,Gb+=2):(b=d,0===Mb&&Vb(yb)),b===d&&(60===a.charCodeAt(Gb)?(b=zb,Gb++):(b=d,0===Mb&&Vb(Ab)),b===d&&(62===a.charCodeAt(Gb)?(b=Bb,Gb++):(b=d,0===Mb&&Vb(Cb))))),b}function zc(){var b,c,e,f,h,i,j,k;if(b=Gb,c=xc(),c!==d){for(e=[],f=Gb,h=jc(),h!==d?(a.substr(Gb,2)===Db?(i=Db,Gb+=2):(i=d,0===Mb&&Vb(Eb)),i!==d?(j=jc(),j!==d?(k=xc(),k!==d?(h=[h,i,j,k],f=h):(Gb=f,f=g)):(Gb=f,f=g)):(Gb=f,f=g)):(Gb=f,f=g);f!==d;)e.push(f),f=Gb,h=jc(),h!==d?(a.substr(Gb,2)===Db?(i=Db,Gb+=2):(i=d,0===Mb&&Vb(Eb)),i!==d?(j=jc(),j!==d?(k=xc(),k!==d?(h=[h,i,j,k],f=h):(Gb=f,f=g)):(Gb=f,f=g)):(Gb=f,f=g)):(Gb=f,f=g);e!==d?(Hb=b,c=Fb(c,e),b=c):(Gb=b,b=g)}else Gb=b,b=g;return b}var Nb,c=arguments.length>1?arguments[1]:{},d={},e={start:Xb},f=Xb,g=d,i=function(a){return a},j=function(a){return a},k={type:"any",description:"any character"},l=/^[a-zA-Z]/,m={type:"class",value:"[a-zA-Z]",description:"[a-zA-Z]"},n="$",o={type:"literal",value:"$",description:'"$"'},p="_",q={type:"literal",value:"_",description:'"_"'},r={type:"other",description:"whitespace"},s=/^[\t\x0B\f \xA0\uFEFF]/,t={type:"class",value:"[\\t\\x0B\\f \\xA0\\uFEFF]",description:"[\\t\\x0B\\f \\xA0\\uFEFF]"},u=/^[\n\r\u2028\u2029]/,v={type:"class",value:"[\\n\\r\\u2028\\u2029]",description:"[\\n\\r\\u2028\\u2029]"},w={type:"other",description:"end of line"},x="\n",y={type:"literal",value:"\n",description:'"\\n"'},z="\r\n",A={type:"literal",value:"\r\n",description:'"\\r\\n"'},B="\r",C={type:"literal",value:"\r",description:'"\\r"'},D="\u2028",E={type:"literal",value:"\u2028",description:'"\\u2028"'},F="\u2029",G={type:"literal",value:"\u2029",description:'"\\u2029"'},H=";",I={type:"literal",value:";",description:'";"'},J=void 0,K={type:"other",description:"comment"},L="/*",M={type:"literal",value:"/*",description:'"/*"'},N="*/",O={type:"literal",value:"*/",description:'"*/"'},P="//",Q={type:"literal",value:"//",description:'"//"'},R=function(a){return{type:"NumericLiteral",value:a}},S=/^[0-9]/,T={type:"class",value:"[0-9]",description:"[0-9]"},U=function(a){return parseInt(a.join(""))},V=".",W={type:"literal",value:".",description:'"."'},X=function(a){return parseFloat(a.join(""))},_={type:"other",description:"identifier"},ab=function(a){return a},bb=function(a,b){return a+b.join("")},cb=function(a){return{type:"Variable",name:a}},db="(",eb={type:"literal",value:"(",description:'"("'},fb=")",gb={type:"literal",value:")",description:'")"'},hb=function(a,b){return{type:"UnaryExpression",operator:a,expression:b}},ib="+",jb={type:"literal",value:"+",description:'"+"'},kb="-",lb={type:"literal",value:"-",description:'"-"'},mb="!",nb={type:"literal",value:"!",description:'"!"'},ob=function(a,b){for(var c=a,d=0;d<b.length;d++)c={type:"MultiplicativeExpression",operator:b[d][1],left:c,right:b[d][3]};return c},pb="*",qb={type:"literal",value:"*",description:'"*"'},rb="/",sb={type:"literal",value:"/",description:'"/"'},tb=function(a,b){for(var c=a,d=0;d<b.length;d++)c={type:"AdditiveExpression",operator:b[d][1],left:c,right:b[d][3]};return c},ub=function(a,b){for(var c=a,d=0;d<b.length;d++)c={type:"Inequality",operator:b[d][1],left:c,right:b[d][3]};return c},vb="<=",wb={type:"literal",value:"<=",description:'"<="'},xb=">=",yb={type:"literal",value:">=",description:'">="'},zb="<",Ab={type:"literal",value:"<",description:'"<"'},Bb=">",Cb={type:"literal",value:">",description:'">"'},Db="==",Eb={type:"literal",value:"==",description:'"=="'},Fb=function(a,b){for(var c=a,d=0;d<b.length;d++)c={type:"Equality",operator:b[d][1],left:c,right:b[d][3]};return c},Gb=0,Hb=0,Ib=0,Jb={line:1,column:1,seenCR:!1},Kb=0,Lb=[],Mb=0;if("startRule"in c){if(!(c.startRule in e))throw new Error("Can't start parsing from rule \""+c.startRule+'".');f=e[c.startRule]}if(Nb=f(),Nb!==d&&Gb===a.length)return Nb;throw Nb!==d&&Gb<a.length&&Vb({type:"end",description:"end of input"}),Wb(null,Lb,Kb)}return a(b,Error),{SyntaxError:b,parse:c}}(),function(a){"use strict";var b=new a.SimplexSolver,c={},d={},e=a.Strength.weak;a.Strength.medium,a.Strength.strong,a.Strength.required;var i=function(f){if(d[f])return d[f];switch(f.type){case"Inequality":var g="<="==f.operator?a.LEQ:a.GEQ,h=new a.Inequality(i(f.left),g,i(f.right),e);return b.addConstraint(h),h;case"Equality":var h=new a.Equation(i(f.left),i(f.right),e);return b.addConstraint(h),h;case"MultiplicativeExpression":var h=a.times(i(f.left),i(f.right));return b.addConstraint(h),h;case"AdditiveExpression":return"+"==f.operator?a.plus(i(f.left),i(f.right)):a.minus(i(f.left),i(f.right));case"NumericLiteral":return new a.Expression(f.value);case"Variable":return c[f.name]||(c[f.name]=new a.Variable({name:f.name})),c[f.name];case"UnaryExpression":console.log("UnaryExpression...WTF?")}},j=function(a){return a.map(i)};a._api=function(){var c=Array.prototype.slice.call(arguments);if(1==c.length){if("string"==typeof c[0]){var d=a.parser.parse(c[0]);return j(d)}"function"==typeof c[0]&&b._addCallback(c[0])}}}(this.c||module.parent.exports||{});
+}).call(
+  (typeof module != "undefined") ?
+      (module.compiled = true && module) : this
+);
+
+"use strict";
+
+var manipulatorCount = 0;
+
+// This is a wrapper over a cassowary variable. It will create an edit session
+// for it when dragged and listen for violations of motion constraints.
+function Manipulator(variable, domObject, axis) {
+    this._variable = variable;
+    this._solver = null;
+    this._axis = axis;
+    this._context = null;
+
+    this._motion = null;
+    this._animation = null;
+    this._name = 'manipulator-' + variable.name + '-' + (++manipulatorCount);
+
+    this._hitConstraint = null;
+    this._constraintCoefficient = 1;
+
+    var self = this;
+
+    // There are three places that a variable gets a value from in here:
+    //  1. touch manipulation (need to apply constraint when in violation)
+    //  2. animation from velocity.
+    //  3. animation from constraint.
+    this._motionState = {
+        editing: false,
+        // Manipulation from touch
+        dragging: false,
+        dragStart: 0,
+        dragDelta: 0,
+        // Animation from velocity (which the finger imparted)
+        velocityAnimation: null,
+        velocityAnimationPosition: 0,
+        velocityAnimationVelocity: 0,
+        // Animation from constraint (either from velocity animation, or from drag end).
+        constraintAnimation: null,
+        constraintAnimationPosition: 0,
+        constraintAnimationVelocity: 0,
+        constraintAnimationConstraint: null, // the constraint we're animating for.
+        // Are we running a constraint iteration where we're pretending to have
+        // an animation in order to discover constraints that only apply to
+        // animations (which we wouldn't discover if we had no velocity and thus
+        // didn't create an animation, for example).
+        trialAnimation: false
+    };
+
+    // Clean up:
+    // There are three places that a variable gets a value from in here:
+    //  1. touch manipulation (need to apply constraint when in violation)
+    //  2. animation from velocity.
+    //  3. animation from constraint.
+    // Currently those three are all kind of mixed up; it might be better
+    // to have them all provide updates and then select which value we're
+    // going to use and whether it needs to be constrained or already has
+    // been.
+
+    addTouchOrMouseListener(domObject, {
+        onTouchStart: function() {
+            // Kill other manipulators that are doing something to a related variable.
+            self._motionContext.stopOthers(self._variable);
+            // Start a new edit session.
+            self._motionState.dragging = true;
+            self._motionState.dragStart = variable.valueOf();
+            self._motionState.dragDelta = 0;
+            self._update();
+        },
+        onTouchMove: function(dx, dy) {
+            var delta = (axis == 'x') ? dx : dy;
+            self._motionState.dragDelta = delta;
+            self._update();
+        },
+        onTouchEnd: function(dx, dy, v) {
+            var velocity = (axis == 'x') ? v.x : v.y;
+            self._motionState.dragging = false;
+            self._motionState.trialAnimation = true;
+            if (self._motionContext) self._motionContext.update();
+            self._createAnimation(velocity);
+            self._motionState.trialAnimation = false;
+        }
+    });
+}
+// This method is called by the MotionContext when this manipulator is added to it.
+Manipulator.prototype._setMotionContext = function(motionContext) {
+    this._motionContext = motionContext;
+    this._solver = motionContext.solver();
+    // Add a stay to the variable we're going to manipulate.
+    this._solver.add(new c.StayConstraint(this._variable, c.Strength.medium, 0));
+}
+Manipulator.prototype.name = function() { return this._name; }
+Manipulator.prototype.variable = function() { return this._variable; }
+Manipulator.prototype.createMotion = function(x, v) {
+    var m = new Friction(0.1); // 0.001
+    m.set(x, v);
+    return m;
+}
+Manipulator.prototype._cancelAnimation = function(key) {
+    if (!this._motionState[key]) return;
+    this._motionState[key].cancel();
+    this._motionState[key] = null;
+}
+Manipulator.prototype._update = function() {
+    // What state are we in?
+    //  1. Dragging -- we set the variable to the value specified and apply some
+    //     damping if we're in violation of a constraint.
+    //  2. Animating -- we have some momentum from a drag, and we're applying the
+    //     values of an animation to the variable. We need to react if we violate
+    //     a constraint.
+    //  3. Constraint animating -- we already violated a constraint and now we're
+    //     animating back to a non-violating position.
+    //  4. Nothing is going on, we shouldn't be editing.
+    //
+    var self = this;
+    function beginEdit() {
+        if (self._motionState.editing) return;
+        self._solver.beginEdit(self._variable, c.Strength.strong);
+        self._motionState.editing = true;
+    }
+
+    if (this._motionState.dragging) {
+        // 1. Dragging.
+
+        // Kill any animations we already have.
+        this._cancelAnimation('velocityAnimation');
+        this._cancelAnimation('constraintAnimation');
+        this._motionState.velocityAnimationVelocity = 0;
+        this._motionState.constraintAnimationVelocity = 0;
+        // Start an edit.
+        beginEdit();
+        // If we've hit any constraint then apply that.
+        var position = this._motionState.dragStart + this._motionState.dragDelta;
+        if (this._hitConstraint) {
+            // Push the current value into the system so that we can extract the delta.
+            this._solver.suggestValue(this._variable, position);
+
+            var violationDelta = this._hitConstraint.delta() / this._constraintCoefficient;
+
+            position += violationDelta * this._hitConstraint.overdragCoefficient;
+        }
+        // Now tell the solver.
+        this._solver.suggestValue(this._variable, position);
+    } else if (this._motionState.constraintAnimation) {
+        this._cancelAnimation('velocityAnimation');
+        beginEdit();
+        var position = this._motionState.constraintAnimationPosition;
+        this._solver.suggestValue(this._variable, position);
+        // If we're no longer in violation then we can kill the constraint animation and
+        // create a new velocity animation unless our constraint is captive (in which case
+        // we remain captured).
+        if (!this._motionState.constraintAnimationConstraint.captive && this._motionState.constraintAnimationConstraint.delta() == 0) {
+            var velocity = this._motionState.constraintAnimationVelocity;
+            this._createAnimation(velocity);
+        }
+    } else if (this._motionState.velocityAnimation) {
+        beginEdit();
+        var position = this._motionState.velocityAnimationPosition;
+        // We don't consider constraints here; we deal with them in didHitConstraint.
+        this._solver.suggestValue(this._variable, position);
+    } else {
+        // We're not doing anything; end the edit.
+        if (!this._motionState.editing) return;
+        this._solver.endEdit(this._variable);
+        this._motionState.editing = false;
+        this._motionState.velocityAnimationVelocity = 0;
+        this._motionState.constraintAnimationVelocity = 0;
+    }
+    if (this._motionContext) this._motionContext.update();
+}
+Manipulator.prototype._createAnimation = function(velocity) {
+    // Can't animate if we're being dragged.
+    if (this._motionState.dragging) return;
+
+    var self = this;
+
+    function sign(x) {
+        return typeof x === 'number' ? x ? x < 0 ? -1 : 1 : x === x ? 0 : NaN : NaN;
+    }
+    // Create an animation from where we are. This is either just a regular motion or we're
+    // violating a constraint and we need to animate out of violation.
+    if (this._hitConstraint) {
+        // Don't interrupt an animation caused by a constraint to enforce the same constraint.
+        // This can happen if the constraint is enforced by an underdamped spring, for example.
+        if (this._motionState.constraintAnimation) {
+            if (this._motionState.constraintAnimationConstraint == this._hitConstraint || this._motionState.constraintAnimationConstraint.captive)
+                return;
+            this._cancelAnimation('constraintAnimation');
+        }
+
+        this._motionState.constraintAnimationConstraint = this._hitConstraint;
+
+        // Determine the current velocity and end point if no constraint had been hit. Some
+        // discontinuous constraint ops use this to determine which point they're going to snap to.
+        velocity = self._motionState.velocityAnimation ? self._motionState.velocityAnimationVelocity : velocity;
+        var endPosition = this._variable.valueOf();
+        if (self._motionState.velocityAnimation) endPosition = self._motionState.velocityAnimation.model.x(60);
+        else if (velocity) {
+            var motion = this.createMotion(this._variable.valueOf(), velocity);
+            endPosition = motion.x(60);
+        }
+        var startPosition = this._motionState.dragStart;
+        // If the constraint isn't relative to our variable then we need to use the solver to
+        // get the appropriate startPosition and endPosition.
+        if (this._variable != this._hitConstraint.variable) {
+            var original = this._variable.valueOf();
+            if (this._motionState.editing) {
+                this._solver.suggestValue(this._variable, startPosition);
+                this._solver.solve();
+                startPosition = this._hitConstraint.variable.valueOf();
+
+                this._solver.suggestValue(this._variable, endPosition);
+                this._solver.solve();
+                endPosition = this._hitConstraint.variable.valueOf();
+
+                this._solver.suggestValue(this._variable, original);
+                this._solver.solve();
+            } else {
+                // XXX: Should start a temporary edit to avoid this...
+                console.warn('not editing; cannot figure out correct start/end positions for motion constraint');
+            }
+        }
+
+        // We pass through the "natural" end point and the start position. MotionConstraints
+        // shouldn't need velocity, so we don't pass that through. (Perhaps there's a constraint
+        // that does need it, then I'll put it back; haven't found that constraint yet).
+        var delta = this._hitConstraint.delta(endPosition, startPosition);
+
+        // Figure out how far we have to go to be out of violation. Because we use a linear
+        // constraint solver to surface violations we only need to remember the coefficient
+        // of a given violation.
+        var violationDelta = delta / this._constraintCoefficient;
+
+        // We always do the constraint animation when we've hit a constraint. If the constraint
+        // isn't captive then we'll fall out of it and into a regular velocity animation later
+        // on (this is how the ends of scroll springs work).
+        this._cancelAnimation('constraintAnimation');
+        this._cancelAnimation('velocityAnimation');
+        var motion = this._hitConstraint.createMotion(this._variable.valueOf());
+        motion.setEnd(this._variable.valueOf() + violationDelta, velocity);
+
+        this._motionState.constraintAnimation = animation(motion,
+            function() {
+                self._motionState.constraintAnimationPosition = motion.x();
+                self._motionState.constraintAnimationVelocity = motion.dx(); // unused.
+                self._update();
+
+                if (motion.done()) {
+                    self._cancelAnimation('constraintAnimation');
+                    self._motionState.constraintAnimationConstraint = null;
+                    self._update();
+                }
+            });
+        return;
+    }
+
+    // No constraint violation, just a plain motion animation incorporating the velocity
+    // imparted by the finger.
+    var motion = this.createMotion(this._variable.valueOf(), velocity);
+
+    if (motion.done()) return;
+
+    this._cancelAnimation('velocityAnimation');
+    this._cancelAnimation('constraintAnimation');
+    
+    this._motionState.velocityAnimation = animation(motion,
+        function() {
+            self._motionState.velocityAnimationPosition = motion.x();
+            self._motionState.velocityAnimationVelocity = motion.dx();
+            self._update();
+            // If we've hit the end then cancel ourselves and update the system
+            // which will end the edit.
+            if (motion.done()) {
+                self._cancelAnimation('velocityAnimation');
+                self._update();
+                if (self._hitConstraint) self._createAnimation(0);
+            }
+        });
+}
+Manipulator.prototype.hitConstraint = function(constraint, coefficient, delta) {
+    // XXX: Handle hitting multiple constraints.
+    if (constraint == this._hitConstraint) return;
+    this._hitConstraint = constraint;
+    this._constraintCoefficient = coefficient;
+
+    if (this._motionState.dragging) {
+        this._update();
+        return;
+    }
+    if (this._motionState.trialAnimation)
+        return;
+    this._createAnimation();
+}
+Manipulator.prototype.hitConstraints = function(violations) {
+    // XXX: Do something good here instead.
+    //
+    // Sort the violations by the largest delta and then just handle that one.
+    if (violations.length == 0) {
+        this._hitConstraint = null;
+        this._constraintCoefficient = 1;
+        return;
+    }
+    violations.sort(function(a, b) {
+        var amc = a.motionConstraint;
+        var bmc = b.motionConstraint;
+        // Non animation-only constraints are less important than animation only ones;
+        // we should also sort on overdrag coefficient so that we get the tightest
+        // constraints to the top.
+        if (amc.overdragCoefficient == bmc.overdragCoefficient)
+            return Math.abs(b.delta) - Math.abs(a.delta);
+        return (bmc.overdragCoefficient - amc.overdragCoefficient);
+    });
+    this.hitConstraint(violations[0].motionConstraint, violations[0].coefficient, violations[0].delta);
+}
+Manipulator.prototype.animating = function() {
+    if (this._motionState.dragging) return false;
+    return !!this._motionState.velocityAnimation || this._motionState.trialAnimation;
+}
+Manipulator.prototype.editing = function() { return this._motionState.editing; }
+Manipulator.prototype.cancelAnimations = function() {
+    this._cancelAnimation('velocityAnimation');
+    this._cancelAnimation('constraintAnimation');
+    this._hitConstraint = null; // XXX: Hacky -- want to prevent starting a new constraint animation in update; just want it to end the edit.
+    this._update();
+}
+
+"use strict";
+
+(function() {
+
+var dPR = window.devicePixelRatio;
+function roundOffset(x) { return Math.round(x * dPR) / dPR; }
+
+// This is a DOM block which is positioned from the constraint solver rather than
+// via flow.
+function Box(textContentOrElement) {
+    if (textContentOrElement && textContentOrElement.style) {
+        this._element = textContentOrElement;
+    } else {
+        this._element = document.createElement('div');
+        this._element.className = 'box';
+        if (textContentOrElement) this._element.textContent = textContentOrElement;
+    }
+
+    // These get replaced with constraint variables by the caller.
+    this.x = 0;
+    this.y = 0;
+    this.right = 100;
+    this.bottom = 100;
+
+    // If these are set then we'll propagate them to the DOM and use
+    // a transform to scale to the desired width. This is handy because
+    // changing the DOM width/height causes a full layout+repaint which
+    // isn't very incremental in WebKit/Blink.
+    this.domWidth = -1;
+    this.domHeight = -1;
+
+    this._children = [];
+
+    this.update();
+}
+Box.prototype.element = function() { return this._element; }
+Box.prototype.addChild = function(box) { this._children.push(box); }
+Box.prototype.update = function(px, py) {
+    function get(variable) {
+        if (variable.valueOf) return variable.valueOf();
+        return variable;
+    }
+    var x = get(this.x);
+    var y = get(this.y);
+    var right = get(this.right);
+    var bottom = get(this.bottom);
+
+    var w = Math.max(0, right - x);
+    var h = Math.max(0, bottom - y);
+
+    for (var i = 0; i < this._children.length; i++) {
+        this._children[i].update(x, y);
+    }
+
+    if (!px) px = 0;
+    if (!py) py = 0;
+    x -= px;
+    y -= py;
+
+    var xscale = 1;
+    var yscale = 1;
+
+    if (this.domWidth != -1) {
+        xscale = w / this.domWidth;
+        w = this.domWidth;
+    }
+    if (this.domHeight != -1) {
+        yscale = h / this.domHeight;
+        h = this.domHeight;
+    }
+    // Don't do rounding if we're doing transform-based scaling
+    // because it makes it jumpy.
+    if (xscale == 1 && yscale == 1) {
+        x = roundOffset(x);
+        y = roundOffset(y);
+        w = roundOffset(w);
+        h = roundOffset(h);
+    }
+
+    // Be careful about updating width and height since it'll
+    // trigger a browser layout.
+    if (w != this._lastWidth) {
+        this._lastWidth = w;
+        this._element.style.width = w + 'px';
+    }
+    if (h != this._lastHeight) {
+        this._lastHeight = h;
+        this._element.style.height = h + 'px';
+    }
+    if (x == this._lastX && y == this._lastY) return;
+    this._lastX = x; this._lastY = y;
+    // Use transform to set the x/y since this is the common
+    // case and it generally avoids a relayout.
+    var transform = 'translate3D(' + x + 'px, ' + y + 'px, 0)';
+    if (xscale != 1 || yscale != 1) {
+        transform += ' scale(' + xscale + ', ' + yscale + ')';
+    }
+    this._element.style.webkitTransform = transform;
+    this._element.style.transform = transform;
+}
+
+window.Box = Box;
+
+})();
+
+'use strict';
+
+// Motion constraint definition
+
+// These are the ops; they return the delta when not met.
+var mc = {
+    greater: function(a, b) {
+            if (a >= b) return 0;
+            return b - a;
+        },
+    less: function(a, b) {
+        if (a <= b) return 0;
+        return b - a;
+    },
+    l: function(a, b) {
+        if (a < b) return 0;
+        return b - a;
+    },
+    g: function(a, b) {
+        if (a > b) return 0;
+        return b - a;
+    },
+    equal: function(a, b) { return b - a; },
+    modulo: function(a, b, naturalEndPosition) {
+        var nearest = b * Math.round(naturalEndPosition/b);
+        return nearest - a;
+    },
+    // Like modulo, but only snaps to the current or adjacent values. Really good for pagers.
+    adjacentModulo: function(a, b, naturalEndPosition, gestureStartPosition) {
+        if (gestureStartPosition === undefined) return mc.modulo(a, b, naturalEndPosition);
+
+        var startNearest = Math.round(gestureStartPosition/b);
+        var endNearest = Math.round(naturalEndPosition/b);
+
+        var difference = endNearest - startNearest;
+
+        // Make the difference at most 1, so that we're only going to adjacent snap points.
+        if (difference) difference /= Math.abs(difference);
+
+        var nearest = (startNearest + difference) * b;
+
+        return nearest - a;
+    },
+    or: function(a, b, naturalEndPosition) {
+        // From ES6, not in Safari yet.
+        var MAX_SAFE_INTEGER = 9007199254740991;
+        // Like modulo, but just finds the nearest in the array b.
+        if (!Array.isArray(b)) return 0;
+        var distance = MAX_SAFE_INTEGER;
+        var nearest = naturalEndPosition;
+
+        for (var i = 0; i < b.length; i++) {
+            var dist = Math.abs(b[i] - naturalEndPosition);
+            if (dist > distance) continue;
+            distance = dist;
+            nearest = b[i];
+        }
+
+        return nearest - a;
+    }
+};
+
+function MotionConstraint(variable, op, value, options) {
+    this.variable = variable;
+    this.value = value;
+    if (typeof op === 'string') {
+        switch (op) {
+        case '==': this.op = mc.equal; break;
+        case '>=': this.op = mc.greater; break;
+        case '<=': this.op = mc.less; break;
+        case '<': this.op = mc.l; break;
+        case '>': this.op = mc.g; break;
+        case '%': this.op = mc.modulo; break;
+        case '||': this.op = mc.or; break;
+        }
+    } else {
+        this.op = op;
+    }
+    if (!options) options = {};
+    this.overdragCoefficient = options.hasOwnProperty('overdragCoefficient') ? options.overdragCoefficient : 0.75;
+    this.physicsModel = options.physicsModel;
+    this.captive = options.captive || false;
+}
+// Some random physics models to use in options. Not sure these belong here.
+MotionConstraint.underDamped = function() { return new Spring(1, 200, 20); }
+MotionConstraint.criticallyDamped = function() { return new Spring(1, 200, Math.sqrt(4 * 1 * 200)); }
+MotionConstraint.prototype.delta = function(naturalEndPosition, gestureStartPosition) {
+    if (!naturalEndPosition) naturalEndPosition = this.variable;
+
+    return this.op(this.variable, this.value, naturalEndPosition, gestureStartPosition);
+}
+MotionConstraint.prototype.createMotion = function(startPosition) {
+    var motion = this.physicsModel ? this.physicsModel() : new Spring(1, 200, 20);//Math.sqrt(200 * 4));
+    motion.snap(startPosition);
+    return motion;
+}
+
+'use strict';
+// This object updates all of the boxes from the constraint solver. It also tests
+// all of the motion constraints and identifies which manipulator caused a motion
+// constraint to be violated.
+function MotionContext() {
+    this._solver = new MultiEditSolver(new c.SimplexSolver());
+    this._boxes = [];
+    this._motionConstraints = [];
+    this._manipulators = [];
+    this._updating = false;
+}
+MotionContext.prototype.solver = function() { return this._solver; }
+MotionContext.prototype.addBox = function(box) {
+    this._boxes.push(box);
+}
+MotionContext.prototype.boxes = function() { return this._boxes; }
+MotionContext.prototype.addMotionConstraint = function(motionConstraint) {
+    this._motionConstraints.push(motionConstraint);
+    return motionConstraint;
+}
+MotionContext.prototype.addManipulator = function(manipulator) {
+    this._manipulators.push(manipulator);
+    manipulator._setMotionContext(this);
+    this.update(); // XXX: Remove -- constructing a Manipulator used to do this, moved it here but it should go.
+    return manipulator;
+}
+MotionContext.prototype.update = function() {
+    // Prevent re-entrancy which can happen when a motion constraint violation
+    // causes an animation to be created which propagates another update.
+    if (this._updating) return;
+    this._updating = true;
+    this._resolveMotionConstraints();
+    for (var i = 0; i < this._boxes.length; i++) {
+        this._boxes[i].update();
+    }
+    this._updating = false;
+}
+// Find out how a manipulator is related to a variable.
+MotionContext.prototype._coefficient = function(manipulator, variable) {
+    var solver = this._solver.solver();
+    var v = manipulator.variable();
+    // Iterate the edit variables in the solver. XXX: these are private and we need a real interface soon.
+    var editVarInfo = solver._editVarMap.get(v);
+    // No edit variable? No contribution to the current violation.
+    if (!editVarInfo) return 0;
+    // Now we can ask the coefficient of the edit's minus variable to the manipulator's variable. This
+    // is what the solver does in suggestValue.
+    var editMinus = editVarInfo.editMinus;
+    // Get the expression that corresponds to the motion constraint's violated variable.
+    // This is probably an "external variable" in cassowary.
+    var expr = solver.rows.get(variable);
+    if (!expr) return 0;
+    // Finally we can compute the value.
+    return expr.coefficientFor(editMinus);
+}
+MotionContext.prototype._resolveMotionConstraints = function() {
+    var allViolations = {};
+
+    // We want to call all manipulators so that those that previously were violating but now
+    // are not get those violations removed.
+    for (var i = 0; i < this._manipulators.length; i++) {
+        var manipulator = this._manipulators[i];
+        allViolations[manipulator.name()] = { manipulator: manipulator, violations: [] };
+    }
+
+    function addViolation(manipulator, motionConstraint, coefficient, delta) {
+        var record = { motionConstraint: motionConstraint, coefficient: coefficient, delta: delta };
+        var name = manipulator.name();
+        if (!allViolations.hasOwnProperty(name)) {
+            allViolations[name] = { manipulator: manipulator, violations: [record] };
+        } else {
+            allViolations[name].violations.push(record);
+        }
+    }
+    function dispatchViolations() {
+        for (var k in allViolations) {
+            var info = allViolations[k];
+            info.manipulator.hitConstraints(info.violations);
+        }
+    }
+
+    for (var i = 0; i < this._motionConstraints.length; i++) {
+        var pc = this._motionConstraints[i];
+        var delta = pc.delta();
+        if (delta == 0)
+            continue;
+
+        // Notify the manipulators that contributed to this violation.
+        for (var j = 0; j < this._manipulators.length; j++) {
+            var manipulator = this._manipulators[j];
+            
+            // If there's no delta and the manipulator isn't animating then it isn't a violation we want to deal
+            // with now.
+            if (delta == 0) continue;
+
+            var c = this._coefficient(manipulator, pc.variable);
+
+            // Do nothing if they're unrelated (i.e.: the coefficient is zero; this manipulator doesn't contribute).
+            if (c == 0) continue;
+
+            // We found a violation and the manipulator that contributed. Remember it and we'll
+            // tell the manipulator about all the violations it contributed to at once afterwards
+            // and it can decide what it's going to do about it...
+            addViolation(manipulator, pc, c, delta);
+        }
+        // XXX: We should find ONE manipulator, or figure out which manipulator to target in the
+        //      case of multiple. If we have one doing an animation, and one doing a touch drag
+        //      then maybe we want to constrain the animating manipulator and let the touch one
+        //      ride?
+    }
+    // Tell all the manipulators that we're done constraining.
+    dispatchViolations();
+}
+MotionContext.prototype.stopOthers = function(variable) {
+    // Kill all the manipulators that are animating this variable. There's a new touch point
+    // that's now dominant.
+    for (var i = 0; i < this._manipulators.length; i++) {
+        var manipulator = this._manipulators[i];
+        if (this._coefficient(manipulator, variable) != 0) manipulator.cancelAnimations();
+    }
+}
+
+"use strict";
+
+// Wrap the cassowary solver so that multiple clients can begin and end edits without conflicting.
+// We do this by ending an edit session whenever we need to add or remove a variable from the current
+// edit and then starting a new one and pushing all of the same suggestions back in.
+function MultiEditSolver(solver) {
+    this._solver = solver;
+    this._editing = false;
+    this._editVars = [];
+
+    // More recent edits get a higher priority.
+    this._priority = 0;
+
+    // Hacky; figure out what the real API here is.
+    this.add = this._solver.add.bind(this._solver);
+    this.solve = this._solver.solve.bind(this._solver);
+    this.resolve = this._solver.resolve.bind(this._solver);
+    this.addConstraint = this._solver.addConstraint.bind(this._solver);
+    this.removeConstraint = this._solver.removeConstraint.bind(this._solver);
+}
+MultiEditSolver.prototype.solver = function() { return this._solver; }
+MultiEditSolver.prototype.beginEdit = function(variable, strength) {
+    var idx = this._find(variable);
+    if (idx != -1) {
+        this._editVars[idx].count++;
+        console.log('multiple edit sessions on ' + variable.name);
+        return;
+    }
+
+    this._editVars.push({ edit: variable, strength: strength, priority: this._priority++, suggest: null, count: 1 });
+    this._reedit();
+}
+MultiEditSolver.prototype._find = function(variable) {
+    for (var i = 0; i < this._editVars.length; i++) {
+        if (this._editVars[i].edit === variable) {
+            return i;
+        }
+    }
+    return -1;
+}
+MultiEditSolver.prototype.endEdit = function(variable) {
+    var idx = this._find(variable);
+    if (idx == -1) {
+        console.warn('cannot end edit on variable that is not being edited');
+        return;
+    }
+    this._editVars[idx].count--;
+    if (this._editVars[idx].count == 0) {
+        this._editVars.splice(idx, 1);
+        this._reedit();
+    }
+}
+MultiEditSolver.prototype.suggestValue = function(variable, value) {
+    if (!this._editing) {
+        console.warn('cannot suggest value when not editing');
+        return;
+    }
+    var idx = this._find(variable);
+    if (idx == -1) {
+        console.warn('cannot suggest value for variable that we are not editing');
+        return;
+    }
+    this._editVars[idx].suggest = value;
+    this._solver.suggestValue(variable, value).resolve();
+}
+MultiEditSolver.prototype._reedit = function() {
+    if (this._editing) {
+        this._solver.endEdit();
+        this._solver.removeAllEditVars();
+    }
+    this._editing = false;
+
+    if (this._editVars.length == 0) {
+        this._solver.resolve();
+        return;
+    }
+    
+    for (var i = 0; i < this._editVars.length; i++) {
+        var v = this._editVars[i];
+
+        this._solver.addEditVar(v.edit, v.strength, v.priority);
+    }
+
+    this._solver.beginEdit();
+
+    // Now suggest all of the previous values again. Not sure if doing them
+    // in a different order will cause a different outcome...
+    for (var i = 0; i < this._editVars.length; i++) {
+        var v = this._editVars[i];
+
+        if (!v.suggest) continue;
+
+        this._solver.suggestValue(v.edit, v.suggest);
+    }
+
+    // Finally resolve.
+    this._solver.resolve();
+    this._editing = true;
+}
+
+'use strict';
+
+/*
+Copyright 2014 Ralph Thomas
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// This function sets up a requestAnimationFrame-based timer which calls
+// the callback every frame while the physics model is still moving.
+// It returns a function that may be called to cancel the animation.
+function animation(physicsModel, callback) {
+    
+    function onFrame(handle, model, cb) {
+        if (handle && handle.cancelled) return;
+        cb(model);
+        if (!physicsModel.done() && !handle.cancelled) {
+            handle.id = requestAnimationFrame(onFrame.bind(null, handle, model, cb));
+        }
+    }
+    function cancel(handle) {
+        if (handle && handle.id)
+            cancelAnimationFrame(handle.id);
+        if (handle)
+            handle.cancelled = true;
+    }
+
+    var handle = { id: 0, cancelled: false };
+    onFrame(handle, physicsModel, callback);
+
+    return { cancel: cancel.bind(null, handle), model: physicsModel };
+}
+
+'use strict';
+/*
+Copyright 2014 Ralph Thomas
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/***
+ * Friction physics simulation. Friction is actually just a simple
+ * power curve; the only trick is taking the natural log of the
+ * initial drag so that we can express the answer in terms of time.
+ */
+function Friction(drag) {
+    this._drag = drag;
+    this._dragLog = Math.log(drag);
+    this._x = 0;
+    this._v = 0;
+    this._startTime = 0;
+}
+Friction.prototype.set = function(x, v) {
+    this._x = x;
+    this._v = v;
+    this._startTime = (new Date()).getTime();
+}
+Friction.prototype.x = function(dt) {
+    if (dt == undefined) dt = ((new Date()).getTime() - this._startTime) / 1000;
+    return this._x + this._v * Math.pow(this._drag, dt) / this._dragLog - this._v / this._dragLog;
+}
+Friction.prototype.dx = function() {
+    var dt = ((new Date()).getTime() - this._startTime) / 1000;
+    return this._v * Math.pow(this._drag, dt);
+}
+Friction.prototype.done = function() {
+    return Math.abs(this.dx()) < 1;
+}
+Friction.prototype.reconfigure = function(drag) {
+    var x = this.x();
+    var v = this.dx();
+    this._drag = drag;
+    this._dragLog = Math.log(drag);
+    this.set(x, v);
+}
+Friction.prototype.configuration = function() {
+    var self = this;
+    return [
+        {
+            label: 'Friction',
+            read: function() { return self._drag; },
+            write: function(drag) { self.reconfigure(drag); },
+            min: 0.001,
+            max: 0.1,
+            step: 0.001
+        }
+    ];
+}
+
+'use strict';
+/*
+Copyright 2014 Ralph Thomas
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+/***
+ * Gravity physics simulation. This actually just simulates
+ * Newton's second law, F=ma integrated to x' = x + v*t + 0.5*a*t*t.
+ *
+ * Note that gravity is never done, so we pass in an explicit termination point beyond which we
+ * declare ourselves "done".
+ */
+function Gravity(acceleration, terminate) {
+    this._acceleration = acceleration;
+    this._terminate = terminate;
+
+    this._x = 0;
+    this._v = 0;
+    this._a = acceleration;
+    this._startTime = 0;
+}
+Gravity.prototype.set = function(x, v) {
+    this._x = x;
+    this._v = v;
+    this._startTime = (new Date()).getTime();
+}
+Gravity.prototype.x = function(dt) {
+    var t = (new Date()).getTime();
+    if (dt == undefined) dt = (t - this._startTime) / 1000.0;
+    return this._x + this._v * dt + 0.5 * this._a * dt * dt;
+}
+Gravity.prototype.dx = function() {
+    var t = (new Date()).getTime();
+    var dt = (t - this._startTime) / 1000.0;
+
+    return this._v + dt * this._a;
+}
+Gravity.prototype.done = function() {
+    return Math.abs(this.x()) > this._terminate;
+}
+Gravity.prototype.reconfigure = function(a) {
+    this.set(this.x(), this.dx());
+    this._a = a;
+}
+Gravity.prototype.configuration = function() {
+    var self = this;
+    return [
+        { label: 'Acceleration', read: function() { return self._a; }, write: this.reconfigure.bind(this), min: -3000, max: 3000 }
+    ];
+}
+
+/**
+ * This is an adaptation of Gravity to have a "floor" at 0. When the object hits
+ * the floor its velocity is inverted so that it bounces.
+ */
+function GravityWithBounce(acceleration, absorb) {
+    this._gravity = new Gravity(acceleration, 0);
+    this._absorb = absorb || 0.8;
+    this._reboundedLast = false;
+}
+GravityWithBounce.prototype.set = function(x, v) { this._gravity.set(x, v); }
+GravityWithBounce.prototype.x = function() {
+    var x = this._gravity.x();
+    // If x goes past zero then we're travelling under the floor, so invert
+    // the velocity.
+    // The end condition here is hacky; if we rebound two frames in a row then
+    // we decide we're done. Don't skip too many frames!
+    if (x > 0) {
+        if (this._reboundedLast) return 0;
+        this._reboundedLast = true;
+        var v = this._gravity.dx();
+        if (Math.abs(v * this._absorb) > Math.abs(this._gravity._a * 2) / 60)
+            this._gravity.set(0, -v * this._absorb);
+        return 0;
+    }
+    this._reboundedLast = false;
+    return x;
+}
+GravityWithBounce.prototype.dx = function() { return this._gravity.dx(); }
+GravityWithBounce.prototype.done = function() {
+    return this._gravity.x() > 1;
+}
+GravityWithBounce.prototype.reconfigure = function(a, absorb) {
+    this._gravity.reconfigure(a);
+    this._absorb = absorb || 0.8;
+}
+GravityWithBounce.prototype.configuration = function() {
+    var self = this;
+    var conf = this._gravity.configuration();
+    conf.push({
+        label: 'Rebound',
+        read: function() { return self._absorb; },
+        write: function(val) { self._absorb = val; },
+        min: 0,
+        max: 1.1,
+        step: 0.1
+    });
+    return conf;
+}
+
+'use strict';
+/*
+Copyright 2014 Ralph Thomas
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+var epsilon = 0.001;
+
+function almostEqual(a, b, epsilon) {
+    return (a > (b - epsilon)) && (a < (b + epsilon));
+}
+
+function almostZero(a, epsilon) {
+    return almostEqual(a, 0, epsilon);
+}
+
+/***
+ * Simple Spring implementation -- this implements a damped spring using a symbolic integration
+ * of Hooke's law: F = -kx - cv. This solution is significantly more performant and less code than
+ * a numerical approach such as Facebook Rebound which uses RK4.
+ *
+ * This physics textbook explains the model:
+ *  http://www.stewartcalculus.com/data/CALCULUS%20Concepts%20and%20Contexts/upfiles/3c3-AppsOf2ndOrders_Stu.pdf
+ *
+ * A critically damped spring has: damping*damping - 4 * mass * springConstant == 0. If it's greater than zero
+ * then the spring is overdamped, if it's less than zero then it's underdamped.
+ */
+function Spring(mass, springConstant, damping) {
+    var self = this;
+    self._m = mass;
+    self._k = springConstant;
+    self._c = damping;
+    self._solution = null;
+    self._endPosition = 0;
+    self._startTime = 0;
+}
+Spring.prototype._solve = function(initial, velocity) {
+    var c = this._c;
+    var m = this._m;
+    var k = this._k;
+    // Solve the quadratic equation; root = (-c +/- sqrt(c^2 - 4mk)) / 2m.
+    var cmk = c * c - 4 * m * k;
+    if (cmk == 0) {
+        // The spring is critically damped.
+        // x = (c1 + c2*t) * e ^(-c/2m)*t
+        var r = -c / (2 * m);
+        var c1 = initial;
+        var c2 = velocity / (r * initial);
+        return {
+            x: function(t) {
+                return (c1 + c2 * t) * Math.pow(Math.E, r * t);
+            },
+            dx: function(t) {
+                var pow = Math.pow(Math.E, r * t);
+                return r * (c1 + c2 * t) * pow + c2 * pow;
+            }
+        };
+    } else if (cmk > 0) {
+        // The spring is overdamped; no bounces.
+        // x = c1*e^(r1*t) + c2*e^(r2t)
+        // Need to find r1 and r2, the roots, then solve c1 and c2.
+        var r1 = (-c - Math.sqrt(cmk)) / (2 * m);
+        var r2 = (-c + Math.sqrt(cmk)) / (2 * m);
+        var c2 = (velocity - r1 * initial) / (r2 - r1);
+        var c1 = initial - c2;
+
+        return {
+            x: function(t) {
+                return (c1 * Math.pow(Math.E, r1 * t) + c2 * Math.pow(Math.E, r2 * t));
+            },
+            dx: function(t) {
+                return (c1 * r1 * Math.pow(Math.E, r1 * t) + c2 * r2 * Math.pow(Math.E, r2 * t));
+            }
+        };
+    } else {
+        // The spring is underdamped, it has imaginary roots.
+        // r = -(c / 2*m) +- w*i
+        // w = sqrt(4mk - c^2) / 2m
+        // x = (e^-(c/2m)t) * (c1 * cos(wt) + c2 * sin(wt))
+        var w = Math.sqrt(4 * m * k - c * c) / (2 * m);
+        var r = -(c / 2 * m);
+        var c1 = initial;
+        var c2 = (velocity - r * initial) / w;
+
+        return {
+            x: function(t) {
+                return Math.pow(Math.E, r * t) * (c1 * Math.cos(w * t) + c2 * Math.sin(w * t));
+            },
+            dx: function(t) {
+                var power = Math.pow(Math.E, r * t);
+                var cos = Math.cos(w * t);
+                var sin = Math.sin(w * t);
+                return power * (c2 * w * cos - c1 * w * sin) + r * power * (c2 * sin + c1 * cos);
+            }
+        };
+    }
+}
+Spring.prototype.x = function(dt) {
+    if (dt == undefined) dt = ((new Date()).getTime() - this._startTime) / 1000.0;
+    return this._solution ? this._endPosition + this._solution.x(dt) : 0;
+}
+Spring.prototype.dx = function(dt) {
+    if (dt == undefined) dt = ((new Date()).getTime() - this._startTime) / 1000.0;
+    return this._solution ? this._solution.dx(dt) : 0;
+}
+Spring.prototype.setEnd = function(x, velocity, t) {
+    if (!t) t = (new Date()).getTime();
+    if (x == this._endPosition && almostZero(velocity, epsilon)) return;
+    velocity = velocity || 0;
+    var position = this._endPosition;
+    if (this._solution) {
+        // Don't whack incoming velocity.
+        if (almostZero(velocity, epsilon))
+            velocity = this._solution.dx((t - this._startTime) / 1000.0);
+        position = this._solution.x((t - this._startTime) / 1000.0);
+        if (almostZero(velocity, epsilon)) velocity = 0;
+        if (almostZero(position, epsilon)) position = 0;
+        position += this._endPosition;
+    }
+    if (this._solution && almostZero(position - x, epsilon) && almostZero(velocity, epsilon)) {
+        return;
+    }
+    this._endPosition = x;
+    this._solution = this._solve(position - this._endPosition, velocity);
+    this._startTime = t;
+}
+Spring.prototype.snap = function(x) {
+    this._startTime = (new Date()).getTime();
+    this._endPosition = x;
+    this._solution = {
+        x: function() {
+            return 0;
+        },
+        dx: function() {
+            return 0;
+        }
+    };
+}
+Spring.prototype.done = function(t) {
+    if (!t) t = (new Date()).getTime();
+    return almostEqual(this.x(), this._endPosition, epsilon) && almostZero(this.dx(), epsilon);
+}
+Spring.prototype.reconfigure = function(mass, springConstant, damping) {
+    this._m = mass;
+    this._k = springConstant;
+    this._c = damping;
+
+    if (this.done()) return;
+    this._solution = this._solve(this.x() - this._endPosition, this.dx());
+    this._startTime = (new Date()).getTime();
+}
+Spring.prototype.springConstant = function() {
+    return this._k;
+}
+Spring.prototype.damping = function() {
+    return this._c;
+}
+
+Spring.prototype.configuration = function() {
+    var self = this;
+
+    function setSpringConstant(s, c) {
+        s.reconfigure(1, c, s.damping());
+    };
+
+    function setSpringDamping(s, d) {
+        s.reconfigure(1, s.springConstant(), d);
+    }
+    return [{
+        label: 'Spring Constant',
+        read: self.springConstant.bind(self),
+        write: setSpringConstant.bind(self, self),
+        min: 100,
+        max: 1000
+    }, {
+        label: 'Damping',
+        read: self.damping.bind(self),
+        write: setSpringDamping.bind(self, self),
+        min: 1,
+        max: 500
+    }];
+}
+"use strict";
+
+// Helpers to make cassowary.js a bit clearer.
+var weak = c.Strength.weak;
+var medium = c.Strength.medium;
+var strong = c.Strength.strong;
+var required = c.Strength.required;
+
+var eq  = function(a1, a2, strength, w) {
+  return new c.Equation(a1, a2, strength || weak, w||0);
+};
+var neq = function(a1, a2, a3) { return new c.Inequality(a1, a2, a3); };
+var geq = function(a1, a2, str, w) { return new c.Inequality(a1, c.GEQ, a2, str, w); };
+var leq = function(a1, a2, str, w) { return new c.Inequality(a1, c.LEQ, a2, str, w); };
+
+var stay = function(v, strength, weight) {
+  return new c.StayConstraint(v, strength||weak, weight||0);
+};
+var weakStay =     function(v, w) { return stay(v, weak,     w||0); };
+var mediumStay =   function(v, w) { return stay(v, medium,   w||0); };
+var strongStay =   function(v, w) { return stay(v, strong,   w||0); };
+var requiredStay = function(v, w) { return stay(v, required, w||0); };
+
 (function() {
 	'use strict';
 
@@ -835,6 +2246,12 @@ angular.module('dish.bootstrap')
 				if (navigator.camera) {
 					var imageOptions;
 				}
+
+				//Set the photo if the model exists
+				//if (_self.ngModel) {
+				console.log('_self', _self.ngModel);
+				_self.photo = _self.ngModel;
+				//}
 
 				_self.openPicker = function() {
 					console.log('DishPhoto', $scope.ngModel, $scope.type, imageOptions);
@@ -1429,19 +2846,50 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
 	'use strict';
 
-	function DishHomeController($scope, $log, Auth, dishKeyboardService, dishModalService) {
+	function DishHomeController($scope, $log, $firebaseArray, FURL, Auth, dishKeyboardService, dishModalService) {
 
-		$scope.swiper = {};
+		var url = FURL + '/meals';
+		var ref = new Firebase(url);
+		$scope.meals = $firebaseArray(ref);
+
+		$scope.meals.$loaded().then(function(result) {
+			$log.log('oh');
+			//Initialize Cards
+			var data = [{
+				image: "img/cards/1.jpg",
+				name: "Cool Name",
+				icon: "img/cards/icons/1.png"
+			}, {
+				image: "img/cards/2.jpg",
+				name: "Rock & Roll",
+				icon: "img/cards/icons/2.png"
+			}, {
+				image: "img/cards/3.jpg",
+				name: "Best App",
+				icon: "img/cards/icons/3.png"
+			}, {
+				image: "img/cards/4.jpg",
+				name: "Cool Name",
+				icon: "img/cards/icons/4.png"
+			}, {
+				image: "img/cards/5.jpg",
+				name: "Rock & Roll",
+				icon: "img/cards/icons/5.png"
+			}, {
+				image: "img/cards/6.jpg",
+				name: "Best App",
+				icon: "img/cards/icons/6.png"
+			}, {
+				image: "img/cards/7.jpg",
+				name: "Cool Name",
+				icon: "img/cards/icons/7.png"
+			}];
+			multiTaskView(document.getElementById("multitask-view"), data);
+		}).catch(function(error) {
+			console.log('error', error)
+		});
+
 		$scope.currentUser = Auth.user;
-
-		//We use this to populate the swiper screens, as it only fires when it's got an ng-repeat included with it
-		$scope.screens = [{
-			template: 'dish-cook/dish-cook.html'
-		}, {
-			template: 'dish-food/dish-food.html'
-		}, {
-			template: 'dish-favorites/dish-favorites.html'
-		}];
 
 		$scope.getCardWidth = function(food, index) {
 			return window.innerWidth;
@@ -1486,7 +2934,7 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 		}
 	}
 
-	DishHomeController.$inject = ['$scope', '$log', 'Auth', 'dishKeyboardService', 'dishModalService'];
+	DishHomeController.$inject = ['$scope', '$log', '$firebaseArray', 'FURL', 'Auth', 'dishKeyboardService', 'dishModalService'];
 
 	angular.module('dish.home')
 		.controller('dishHomeController', DishHomeController);
@@ -1499,16 +2947,15 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
 	'use strict';
 
-	function DishFoodController($scope, $log) {
-		$scope.foods = [{}, {}, {}, {}, {}, {}];
+	function DishFoodController($scope, $log, $firebaseArray, FURL) {
 
-		$scope.food = function() {
-			$log.log('food');
+		$scope.buy = function() {
+			$log.log('buy');
 		};
 
 	}
 
-	DishFoodController.$inject = ['$scope', '$log'];
+	DishFoodController.$inject = ['$scope', '$log', '$firebaseArray', 'FURL'];
 
 	angular.module('dish.forgot')
 		.controller('dishFoodController', DishFoodController);
@@ -1521,16 +2968,47 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 (function() {
   'use strict';
 
-  function DishCookController($scope, $log) {
-    $scope.recipes = [{}, {}, {}, {}, {}, {}];
+  function DishCookController($scope, $log, $firebaseArray, FURL) {
+    var url = FURL + '/meals';
+    var ref = new Firebase(url);
 
-    $scope.cook = function() {
-      $log.log('cook');
+    // create a query for the most recent 25 meals on the server
+    var query = ref.orderByChild("cookedTime").limitToLast(25);
+
+    $scope.recipes = $firebaseArray(ref);
+
+    //Push a recipe card into the beginning of the recipes array that isn't synced back to the server so that users can create recipes
+    $scope.recipes.$loaded(function() {
+      $scope.recipes.unshift({});
+      $log.log('loaded', $scope.recipes);
+    });
+
+    $scope.valid = function(recipe) {
+      if (!recipe) {
+        return false;
+      }
+      recipe.photo = 'https://s-media-cache-ak0.pinimg.com/474x/53/4d/7b/534d7b4630c75ac608bd6b46461f1d8d.jpg'; //Shim for local testing
+      if (!recipe.photo) return false;
+      if (!recipe.name) return false;
+      if (!recipe.ingredients) return false;
+      if (!recipe.portions) return false;
+      if (!recipe.price) return false;
+      return true;
+    };
+
+    $scope.cook = function(recipe) {
+      $log.log('cook', recipe);
+      if (!$scope.currentUser) return;
+      recipe.user = $scope.currentUser.profile.$id;
+      recipe.cookedTime = new Date().getTime();
+      recipe.state = 'pickup';
+      recipe.timestamp = Firebase.ServerValue.TIMESTAMP;
+      $scope.meals.$add(recipe);
     };
 
   }
 
-  DishCookController.$inject = ['$scope', '$log'];
+  DishCookController.$inject = ['$scope', '$log', '$firebaseArray', 'FURL'];
 
   angular.module('dish.cook')
     .controller('dishCookController', DishCookController);
@@ -2053,17 +3531,17 @@ k(e[0],a))?a.next=b.next:c.head=b.next;delete l[d];c.reRender()}}]}}]).directive
 g.translate=s()?r:i,a&&g.updateActiveIndex(),"slide"!==g.params.effect&&g.effects[g.params.effect]&&g.effects[g.params.effect].setTranslate(g.translate),g.params.parallax&&g.parallax&&g.parallax.setTranslate(g.translate),g.params.scrollbar&&g.scrollbar&&g.scrollbar.setTranslate(g.translate),g.params.control&&g.controller&&g.controller.setTranslate(g.translate,t),g.emit("onSetTranslate",g,g.translate)},g.getTranslate=function(e,a){var t,r,s,i;return"undefined"==typeof a&&(a="x"),g.params.virtualTranslate?g.rtl?-g.translate:g.translate:(s=window.getComputedStyle(e,null),window.WebKitCSSMatrix?i=new window.WebKitCSSMatrix("none"===s.webkitTransform?"":s.webkitTransform):(i=s.MozTransform||s.OTransform||s.MsTransform||s.msTransform||s.transform||s.getPropertyValue("transform").replace("translate(","matrix(1, 0, 0, 1,"),t=i.toString().split(",")),"x"===a&&(r=window.WebKitCSSMatrix?i.m41:parseFloat(16===t.length?t[12]:t[4])),"y"===a&&(r=window.WebKitCSSMatrix?i.m42:parseFloat(16===t.length?t[13]:t[5])),g.rtl&&r&&(r=-r),r||0)},g.getWrapperTranslate=function(e){return"undefined"==typeof e&&(e=s()?"x":"y"),g.getTranslate(g.wrapper[0],e)},g.observers=[],g.initObservers=function(){if(g.params.observeParents)for(var e=g.container.parents(),a=0;a<e.length;a++)o(e[a]);o(g.container[0],{childList:!1}),o(g.wrapper[0],{attributes:!1})},g.disconnectObservers=function(){for(var e=0;e<g.observers.length;e++)g.observers[e].disconnect();g.observers=[]},g.createLoop=function(){g.wrapper.children("."+g.params.slideClass+"."+g.params.slideDuplicateClass).remove();var e=g.wrapper.children("."+g.params.slideClass);g.loopedSlides=parseInt(g.params.loopedSlides||g.params.slidesPerView,10),g.loopedSlides=g.loopedSlides+g.params.loopAdditionalSlides,g.loopedSlides>e.length&&(g.loopedSlides=e.length);var a,t=[],r=[];for(e.each(function(a,s){var i=v(this);a<g.loopedSlides&&r.push(s),a<e.length&&a>=e.length-g.loopedSlides&&t.push(s),i.attr("data-swiper-slide-index",a)}),a=0;a<r.length;a++)g.wrapper.append(v(r[a].cloneNode(!0)).addClass(g.params.slideDuplicateClass));for(a=t.length-1;a>=0;a--)g.wrapper.prepend(v(t[a].cloneNode(!0)).addClass(g.params.slideDuplicateClass))},g.destroyLoop=function(){g.wrapper.children("."+g.params.slideClass+"."+g.params.slideDuplicateClass).remove(),g.slides.removeAttr("data-swiper-slide-index")},g.fixLoop=function(){var e;g.activeIndex<g.loopedSlides?(e=g.slides.length-3*g.loopedSlides+g.activeIndex,e+=g.loopedSlides,g.slideTo(e,0,!1,!0)):("auto"===g.params.slidesPerView&&g.activeIndex>=2*g.loopedSlides||g.activeIndex>g.slides.length-2*g.params.slidesPerView)&&(e=-g.slides.length+g.activeIndex+g.loopedSlides,e+=g.loopedSlides,g.slideTo(e,0,!1,!0))},g.appendSlide=function(e){if(g.params.loop&&g.destroyLoop(),"object"==typeof e&&e.length)for(var a=0;a<e.length;a++)e[a]&&g.wrapper.append(e[a]);else g.wrapper.append(e);g.params.loop&&g.createLoop(),g.params.observer&&g.support.observer||g.update(!0)},g.prependSlide=function(e){g.params.loop&&g.destroyLoop();var a=g.activeIndex+1;if("object"==typeof e&&e.length){for(var t=0;t<e.length;t++)e[t]&&g.wrapper.prepend(e[t]);a=g.activeIndex+e.length}else g.wrapper.prepend(e);g.params.loop&&g.createLoop(),g.params.observer&&g.support.observer||g.update(!0),g.slideTo(a,0,!1)},g.removeSlide=function(e){g.params.loop&&(g.destroyLoop(),g.slides=g.wrapper.children("."+g.params.slideClass));var a,t=g.activeIndex;if("object"==typeof e&&e.length){for(var r=0;r<e.length;r++)a=e[r],g.slides[a]&&g.slides.eq(a).remove(),t>a&&t--;t=Math.max(t,0)}else a=e,g.slides[a]&&g.slides.eq(a).remove(),t>a&&t--,t=Math.max(t,0);g.params.loop&&g.createLoop(),g.params.observer&&g.support.observer||g.update(!0),g.params.loop?g.slideTo(t+g.loopedSlides,0,!1):g.slideTo(t,0,!1)},g.removeAllSlides=function(){for(var e=[],a=0;a<g.slides.length;a++)e.push(a);g.removeSlide(e)},g.effects={fade:{setTranslate:function(){for(var e=0;e<g.slides.length;e++){var a=g.slides.eq(e),t=a[0].swiperSlideOffset,r=-t;g.params.virtualTranslate||(r-=g.translate);var i=0;s()||(i=r,r=0);var n=g.params.fade.crossFade?Math.max(1-Math.abs(a[0].progress),0):1+Math.min(Math.max(a[0].progress,-1),0);a.css({opacity:n}).transform("translate3d("+r+"px, "+i+"px, 0px)")}},setTransition:function(e){if(g.slides.transition(e),g.params.virtualTranslate&&0!==e){var a=!1;g.slides.transitionEnd(function(){if(!a&&g){a=!0,g.animating=!1;for(var e=["webkitTransitionEnd","transitionend","oTransitionEnd","MSTransitionEnd","msTransitionEnd"],t=0;t<e.length;t++)g.wrapper.trigger(e[t])}})}}},cube:{setTranslate:function(){var e,a=0;g.params.cube.shadow&&(s()?(e=g.wrapper.find(".swiper-cube-shadow"),0===e.length&&(e=v('<div class="swiper-cube-shadow"></div>'),g.wrapper.append(e)),e.css({height:g.width+"px"})):(e=g.container.find(".swiper-cube-shadow"),0===e.length&&(e=v('<div class="swiper-cube-shadow"></div>'),g.container.append(e))));for(var t=0;t<g.slides.length;t++){var r=g.slides.eq(t),i=90*t,n=Math.floor(i/360);g.rtl&&(i=-i,n=Math.floor(-i/360));var o=Math.max(Math.min(r[0].progress,1),-1),l=0,d=0,p=0;t%4===0?(l=4*-n*g.size,p=0):(t-1)%4===0?(l=0,p=4*-n*g.size):(t-2)%4===0?(l=g.size+4*n*g.size,p=g.size):(t-3)%4===0&&(l=-g.size,p=3*g.size+4*g.size*n),g.rtl&&(l=-l),s()||(d=l,l=0);var u="rotateX("+(s()?0:-i)+"deg) rotateY("+(s()?i:0)+"deg) translate3d("+l+"px, "+d+"px, "+p+"px)";if(1>=o&&o>-1&&(a=90*t+90*o,g.rtl&&(a=90*-t-90*o)),r.transform(u),g.params.cube.slideShadows){var c=r.find(s()?".swiper-slide-shadow-left":".swiper-slide-shadow-top"),m=r.find(s()?".swiper-slide-shadow-right":".swiper-slide-shadow-bottom");0===c.length&&(c=v('<div class="swiper-slide-shadow-'+(s()?"left":"top")+'"></div>'),r.append(c)),0===m.length&&(m=v('<div class="swiper-slide-shadow-'+(s()?"right":"bottom")+'"></div>'),r.append(m));{r[0].progress}c.length&&(c[0].style.opacity=-r[0].progress),m.length&&(m[0].style.opacity=r[0].progress)}}if(g.wrapper.css({"-webkit-transform-origin":"50% 50% -"+g.size/2+"px","-moz-transform-origin":"50% 50% -"+g.size/2+"px","-ms-transform-origin":"50% 50% -"+g.size/2+"px","transform-origin":"50% 50% -"+g.size/2+"px"}),g.params.cube.shadow)if(s())e.transform("translate3d(0px, "+(g.width/2+g.params.cube.shadowOffset)+"px, "+-g.width/2+"px) rotateX(90deg) rotateZ(0deg) scale("+g.params.cube.shadowScale+")");else{var f=Math.abs(a)-90*Math.floor(Math.abs(a)/90),h=1.5-(Math.sin(2*f*Math.PI/360)/2+Math.cos(2*f*Math.PI/360)/2),w=g.params.cube.shadowScale,y=g.params.cube.shadowScale/h,b=g.params.cube.shadowOffset;e.transform("scale3d("+w+", 1, "+y+") translate3d(0px, "+(g.height/2+b)+"px, "+-g.height/2/y+"px) rotateX(-90deg)")}var x=g.isSafari||g.isUiWebView?-g.size/2:0;g.wrapper.transform("translate3d(0px,0,"+x+"px) rotateX("+(s()?0:a)+"deg) rotateY("+(s()?-a:0)+"deg)")},setTransition:function(e){g.slides.transition(e).find(".swiper-slide-shadow-top, .swiper-slide-shadow-right, .swiper-slide-shadow-bottom, .swiper-slide-shadow-left").transition(e),g.params.cube.shadow&&!s()&&g.container.find(".swiper-cube-shadow").transition(e)}},coverflow:{setTranslate:function(){for(var e=g.translate,a=s()?-e+g.width/2:-e+g.height/2,t=s()?g.params.coverflow.rotate:-g.params.coverflow.rotate,r=g.params.coverflow.depth,i=0,n=g.slides.length;n>i;i++){var o=g.slides.eq(i),l=g.slidesSizesGrid[i],d=o[0].swiperSlideOffset,p=(a-d-l/2)/l*g.params.coverflow.modifier,u=s()?t*p:0,c=s()?0:t*p,m=-r*Math.abs(p),f=s()?0:g.params.coverflow.stretch*p,h=s()?g.params.coverflow.stretch*p:0;Math.abs(h)<.001&&(h=0),Math.abs(f)<.001&&(f=0),Math.abs(m)<.001&&(m=0),Math.abs(u)<.001&&(u=0),Math.abs(c)<.001&&(c=0);var w="translate3d("+h+"px,"+f+"px,"+m+"px)  rotateX("+c+"deg) rotateY("+u+"deg)";if(o.transform(w),o[0].style.zIndex=-Math.abs(Math.round(p))+1,g.params.coverflow.slideShadows){var y=o.find(s()?".swiper-slide-shadow-left":".swiper-slide-shadow-top"),b=o.find(s()?".swiper-slide-shadow-right":".swiper-slide-shadow-bottom");0===y.length&&(y=v('<div class="swiper-slide-shadow-'+(s()?"left":"top")+'"></div>'),o.append(y)),0===b.length&&(b=v('<div class="swiper-slide-shadow-'+(s()?"right":"bottom")+'"></div>'),o.append(b)),y.length&&(y[0].style.opacity=p>0?p:0),b.length&&(b[0].style.opacity=-p>0?-p:0)}}if(g.browser.ie){var x=g.wrapper[0].style;x.perspectiveOrigin=a+"px 50%"}},setTransition:function(e){g.slides.transition(e).find(".swiper-slide-shadow-top, .swiper-slide-shadow-right, .swiper-slide-shadow-bottom, .swiper-slide-shadow-left").transition(e)}}},g.lazy={initialImageLoaded:!1,loadImageInSlide:function(e,a){if("undefined"!=typeof e&&("undefined"==typeof a&&(a=!0),0!==g.slides.length)){var t=g.slides.eq(e),r=t.find(".swiper-lazy:not(.swiper-lazy-loaded):not(.swiper-lazy-loading)");!t.hasClass("swiper-lazy")||t.hasClass("swiper-lazy-loaded")||t.hasClass("swiper-lazy-loading")||r.add(t[0]),0!==r.length&&r.each(function(){var e=v(this);e.addClass("swiper-lazy-loading");var r=e.attr("data-background"),s=e.attr("data-src");g.loadImage(e[0],s||r,!1,function(){if(r?(e.css("background-image","url("+r+")"),e.removeAttr("data-background")):(e.attr("src",s),e.removeAttr("data-src")),e.addClass("swiper-lazy-loaded").removeClass("swiper-lazy-loading"),t.find(".swiper-lazy-preloader, .preloader").remove(),g.params.loop&&a){var i=t.attr("data-swiper-slide-index");if(t.hasClass(g.params.slideDuplicateClass)){var n=g.wrapper.children('[data-swiper-slide-index="'+i+'"]:not(.'+g.params.slideDuplicateClass+")");g.lazy.loadImageInSlide(n.index(),!1)}else{var o=g.wrapper.children("."+g.params.slideDuplicateClass+'[data-swiper-slide-index="'+i+'"]');g.lazy.loadImageInSlide(o.index(),!1)}}g.emit("onLazyImageReady",g,t[0],e[0])}),g.emit("onLazyImageLoad",g,t[0],e[0])})}},load:function(){var e;if(g.params.watchSlidesVisibility)g.wrapper.children("."+g.params.slideVisibleClass).each(function(){g.lazy.loadImageInSlide(v(this).index())});else if(g.params.slidesPerView>1)for(e=g.activeIndex;e<g.activeIndex+g.params.slidesPerView;e++)g.slides[e]&&g.lazy.loadImageInSlide(e);else g.lazy.loadImageInSlide(g.activeIndex);if(g.params.lazyLoadingInPrevNext)if(g.params.slidesPerView>1){for(e=g.activeIndex+g.params.slidesPerView;e<g.activeIndex+g.params.slidesPerView+g.params.slidesPerView;e++)g.slides[e]&&g.lazy.loadImageInSlide(e);for(e=g.activeIndex-g.params.slidesPerView;e<g.activeIndex;e++)g.slides[e]&&g.lazy.loadImageInSlide(e)}else{var a=g.wrapper.children("."+g.params.slideNextClass);a.length>0&&g.lazy.loadImageInSlide(a.index());var t=g.wrapper.children("."+g.params.slidePrevClass);t.length>0&&g.lazy.loadImageInSlide(t.index())}},onTransitionStart:function(){g.params.lazyLoading&&(g.params.lazyLoadingOnTransitionStart||!g.params.lazyLoadingOnTransitionStart&&!g.lazy.initialImageLoaded)&&g.lazy.load()},onTransitionEnd:function(){g.params.lazyLoading&&!g.params.lazyLoadingOnTransitionStart&&g.lazy.load()}},g.scrollbar={set:function(){if(g.params.scrollbar){var e=g.scrollbar;e.track=v(g.params.scrollbar),e.drag=e.track.find(".swiper-scrollbar-drag"),0===e.drag.length&&(e.drag=v('<div class="swiper-scrollbar-drag"></div>'),e.track.append(e.drag)),e.drag[0].style.width="",e.drag[0].style.height="",e.trackSize=s()?e.track[0].offsetWidth:e.track[0].offsetHeight,e.divider=g.size/g.virtualSize,e.moveDivider=e.divider*(e.trackSize/g.size),e.dragSize=e.trackSize*e.divider,s()?e.drag[0].style.width=e.dragSize+"px":e.drag[0].style.height=e.dragSize+"px",e.track[0].style.display=e.divider>=1?"none":"",g.params.scrollbarHide&&(e.track[0].style.opacity=0)}},setTranslate:function(){if(g.params.scrollbar){var e,a=g.scrollbar,t=(g.translate||0,a.dragSize);e=(a.trackSize-a.dragSize)*g.progress,g.rtl&&s()?(e=-e,e>0?(t=a.dragSize-e,e=0):-e+a.dragSize>a.trackSize&&(t=a.trackSize+e)):0>e?(t=a.dragSize+e,e=0):e+a.dragSize>a.trackSize&&(t=a.trackSize-e),s()?(a.drag.transform(g.support.transforms3d?"translate3d("+e+"px, 0, 0)":"translateX("+e+"px)"),a.drag[0].style.width=t+"px"):(a.drag.transform(g.support.transforms3d?"translate3d(0px, "+e+"px, 0)":"translateY("+e+"px)"),a.drag[0].style.height=t+"px"),g.params.scrollbarHide&&(clearTimeout(a.timeout),a.track[0].style.opacity=1,a.timeout=setTimeout(function(){a.track[0].style.opacity=0,a.track.transition(400)},1e3))}},setTransition:function(e){g.params.scrollbar&&g.scrollbar.drag.transition(e)}},g.controller={setTranslate:function(e,t){function r(a){e=a.rtl&&"horizontal"===a.params.direction?-g.translate:g.translate,s=(a.maxTranslate()-a.minTranslate())/(g.maxTranslate()-g.minTranslate()),i=(e-g.minTranslate())*s+a.minTranslate(),g.params.controlInverse&&(i=a.maxTranslate()-i),a.updateProgress(i),a.setWrapperTranslate(i,!1,g),a.updateActiveIndex()}var s,i,n=g.params.control;if(g.isArray(n))for(var o=0;o<n.length;o++)n[o]!==t&&n[o]instanceof a&&r(n[o]);else n instanceof a&&t!==n&&r(n)},setTransition:function(e,t){function r(a){a.setWrapperTransition(e,g),0!==e&&(a.onTransitionStart(),a.wrapper.transitionEnd(function(){i&&a.onTransitionEnd()}))}var s,i=g.params.control;if(g.isArray(i))for(s=0;s<i.length;s++)i[s]!==t&&i[s]instanceof a&&r(i[s]);else i instanceof a&&t!==i&&r(i)}},g.hashnav={init:function(){if(g.params.hashnav){g.hashnav.initialized=!0;var e=document.location.hash.replace("#","");if(e)for(var a=0,t=0,r=g.slides.length;r>t;t++){var s=g.slides.eq(t),i=s.attr("data-hash");if(i===e&&!s.hasClass(g.params.slideDuplicateClass)){var n=s.index();g.slideTo(n,a,g.params.runCallbacksOnInit,!0)}}}},setHash:function(){g.hashnav.initialized&&g.params.hashnav&&(document.location.hash=g.slides.eq(g.activeIndex).attr("data-hash")||"")}},g.disableKeyboardControl=function(){v(document).off("keydown",l)},g.enableKeyboardControl=function(){v(document).on("keydown",l)},g.mousewheel={event:!1,lastScrollTime:(new window.Date).getTime()},g.params.mousewheelControl){if(void 0!==document.onmousewheel&&(g.mousewheel.event="mousewheel"),!g.mousewheel.event)try{new window.WheelEvent("wheel"),g.mousewheel.event="wheel"}catch(G){}g.mousewheel.event||(g.mousewheel.event="DOMMouseScroll")}g.disableMousewheelControl=function(){return g.mousewheel.event?(g.container.off(g.mousewheel.event,d),!0):!1},g.enableMousewheelControl=function(){return g.mousewheel.event?(g.container.on(g.mousewheel.event,d),!0):!1},g.parallax={setTranslate:function(){g.container.children("[data-swiper-parallax], [data-swiper-parallax-x], [data-swiper-parallax-y]").each(function(){p(this,g.progress)}),g.slides.each(function(){var e=v(this);e.find("[data-swiper-parallax], [data-swiper-parallax-x], [data-swiper-parallax-y]").each(function(){var a=Math.min(Math.max(e[0].progress,-1),1);p(this,a)})})},setTransition:function(e){"undefined"==typeof e&&(e=g.params.speed),g.container.find("[data-swiper-parallax], [data-swiper-parallax-x], [data-swiper-parallax-y]").each(function(){var a=v(this),t=parseInt(a.attr("data-swiper-parallax-duration"),10)||e;0===e&&(t=0),a.transition(t)})}},g._plugins=[];for(var B in g.plugins){var A=g.plugins[B](g,g.params[B]);A&&g._plugins.push(A)}return g.callPlugins=function(e){for(var a=0;a<g._plugins.length;a++)e in g._plugins[a]&&g._plugins[a][e](arguments[1],arguments[2],arguments[3],arguments[4],arguments[5])},g.emitterEventListeners={},g.emit=function(e){g.params[e]&&g.params[e](arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]);var a;if(g.emitterEventListeners[e])for(a=0;a<g.emitterEventListeners[e].length;a++)g.emitterEventListeners[e][a](arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]);g.callPlugins&&g.callPlugins(e,arguments[1],arguments[2],arguments[3],arguments[4],arguments[5])},g.on=function(e,a){return e=u(e),g.emitterEventListeners[e]||(g.emitterEventListeners[e]=[]),g.emitterEventListeners[e].push(a),g},g.off=function(e,a){var t;if(e=u(e),"undefined"==typeof a)return g.emitterEventListeners[e]=[],g;if(g.emitterEventListeners[e]&&0!==g.emitterEventListeners[e].length){for(t=0;t<g.emitterEventListeners[e].length;t++)g.emitterEventListeners[e][t]===a&&g.emitterEventListeners[e].splice(t,1);return g}},g.once=function(e,a){e=u(e);var t=function(){a(arguments[0],arguments[1],arguments[2],arguments[3],arguments[4]),g.off(e,t)};return g.on(e,t),g},g.a11y={makeFocusable:function(e){return e[0].tabIndex="0",e},addRole:function(e,a){return e.attr("role",a),e},addLabel:function(e,a){return e.attr("aria-label",a),e},disable:function(e){return e.attr("aria-disabled",!0),e},enable:function(e){return e.attr("aria-disabled",!1),e},onEnterKey:function(e){13===e.keyCode&&(v(e.target).is(g.params.nextButton)?(g.onClickNext(e),g.a11y.notify(g.isEnd?g.params.lastSlideMsg:g.params.nextSlideMsg)):v(e.target).is(g.params.prevButton)&&(g.onClickPrev(e),g.a11y.notify(g.isBeginning?g.params.firstSlideMsg:g.params.prevSlideMsg)))},liveRegion:v('<span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>'),notify:function(e){var a=g.a11y.liveRegion;0!==a.length&&(a.html(""),a.html(e))},init:function(){if(g.params.nextButton){var e=v(g.params.nextButton);g.a11y.makeFocusable(e),g.a11y.addRole(e,"button"),g.a11y.addLabel(e,g.params.nextSlideMsg)}if(g.params.prevButton){var a=v(g.params.prevButton);g.a11y.makeFocusable(a),g.a11y.addRole(a,"button"),g.a11y.addLabel(a,g.params.prevSlideMsg)}v(g.container).append(g.a11y.liveRegion)},destroy:function(){g.a11y.liveRegion&&g.a11y.liveRegion.length>0&&g.a11y.liveRegion.remove()}},g.init=function(){g.params.loop&&g.createLoop(),g.updateContainerSize(),g.updateSlidesSize(),g.updatePagination(),g.params.scrollbar&&g.scrollbar&&g.scrollbar.set(),"slide"!==g.params.effect&&g.effects[g.params.effect]&&(g.params.loop||g.updateProgress(),g.effects[g.params.effect].setTranslate()),g.params.loop?g.slideTo(g.params.initialSlide+g.loopedSlides,0,g.params.runCallbacksOnInit):(g.slideTo(g.params.initialSlide,0,g.params.runCallbacksOnInit),0===g.params.initialSlide&&(g.parallax&&g.params.parallax&&g.parallax.setTranslate(),g.lazy&&g.params.lazyLoading&&(g.lazy.load(),g.lazy.initialImageLoaded=!0))),g.attachEvents(),g.params.observer&&g.support.observer&&g.initObservers(),g.params.preloadImages&&!g.params.lazyLoading&&g.preloadImages(),g.params.autoplay&&g.startAutoplay(),g.params.keyboardControl&&g.enableKeyboardControl&&g.enableKeyboardControl(),g.params.mousewheelControl&&g.enableMousewheelControl&&g.enableMousewheelControl(),g.params.hashnav&&g.hashnav&&g.hashnav.init(),g.params.a11y&&g.a11y&&g.a11y.init(),g.emit("onInit",g)},g.cleanupStyles=function(){g.container.removeClass(g.classNames.join(" ")).removeAttr("style"),g.wrapper.removeAttr("style"),g.slides&&g.slides.length&&g.slides.removeClass([g.params.slideVisibleClass,g.params.slideActiveClass,g.params.slideNextClass,g.params.slidePrevClass].join(" ")).removeAttr("style").removeAttr("data-swiper-column").removeAttr("data-swiper-row"),g.paginationContainer&&g.paginationContainer.length&&g.paginationContainer.removeClass(g.params.paginationHiddenClass),g.bullets&&g.bullets.length&&g.bullets.removeClass(g.params.bulletActiveClass),g.params.prevButton&&v(g.params.prevButton).removeClass(g.params.buttonDisabledClass),g.params.nextButton&&v(g.params.nextButton).removeClass(g.params.buttonDisabledClass),g.params.scrollbar&&g.scrollbar&&(g.scrollbar.track&&g.scrollbar.track.length&&g.scrollbar.track.removeAttr("style"),g.scrollbar.drag&&g.scrollbar.drag.length&&g.scrollbar.drag.removeAttr("style"))},g.destroy=function(e,a){g.detachEvents(),g.stopAutoplay(),g.params.loop&&g.destroyLoop(),a&&g.cleanupStyles(),g.disconnectObservers(),g.params.keyboardControl&&g.disableKeyboardControl&&g.disableKeyboardControl(),g.params.mousewheelControl&&g.disableMousewheelControl&&g.disableMousewheelControl(),g.params.a11y&&g.a11y&&g.a11y.destroy(),g.emit("onDestroy"),e!==!1&&(g=null)},g.init(),g}};a.prototype={isSafari:function(){var e=navigator.userAgent.toLowerCase();return e.indexOf("safari")>=0&&e.indexOf("chrome")<0&&e.indexOf("android")<0}(),isUiWebView:/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(navigator.userAgent),isArray:function(e){return"[object Array]"===Object.prototype.toString.apply(e)},browser:{ie:window.navigator.pointerEnabled||window.navigator.msPointerEnabled,ieTouch:window.navigator.msPointerEnabled&&window.navigator.msMaxTouchPoints>1||window.navigator.pointerEnabled&&window.navigator.maxTouchPoints>1},device:function(){var e=navigator.userAgent,a=e.match(/(Android);?[\s\/]+([\d.]+)?/),t=e.match(/(iPad).*OS\s([\d_]+)/),r=(e.match(/(iPod)(.*OS\s([\d_]+))?/),!t&&e.match(/(iPhone\sOS)\s([\d_]+)/));return{ios:t||r||t,android:a}}(),support:{touch:window.Modernizr&&Modernizr.touch===!0||function(){return!!("ontouchstart"in window||window.DocumentTouch&&document instanceof DocumentTouch)}(),transforms3d:window.Modernizr&&Modernizr.csstransforms3d===!0||function(){var e=document.createElement("div").style;return"webkitPerspective"in e||"MozPerspective"in e||"OPerspective"in e||"MsPerspective"in e||"perspective"in e}(),flexbox:function(){for(var e=document.createElement("div").style,a="alignItems webkitAlignItems webkitBoxAlign msFlexAlign mozBoxAlign webkitFlexDirection msFlexDirection mozBoxDirection mozBoxOrient webkitBoxDirection webkitBoxOrient".split(" "),t=0;t<a.length;t++)if(a[t]in e)return!0}(),observer:function(){return"MutationObserver"in window||"WebkitMutationObserver"in window}()},plugins:{}};for(var t=(function(){var e=function(e){var a=this,t=0;for(t=0;t<e.length;t++)a[t]=e[t];return a.length=e.length,this},a=function(a,t){var r=[],s=0;if(a&&!t&&a instanceof e)return a;if(a)if("string"==typeof a){var i,n,o=a.trim();if(o.indexOf("<")>=0&&o.indexOf(">")>=0){var l="div";for(0===o.indexOf("<li")&&(l="ul"),0===o.indexOf("<tr")&&(l="tbody"),(0===o.indexOf("<td")||0===o.indexOf("<th"))&&(l="tr"),0===o.indexOf("<tbody")&&(l="table"),0===o.indexOf("<option")&&(l="select"),n=document.createElement(l),n.innerHTML=a,s=0;s<n.childNodes.length;s++)r.push(n.childNodes[s])}else for(i=t||"#"!==a[0]||a.match(/[ .<>:~]/)?(t||document).querySelectorAll(a):[document.getElementById(a.split("#")[1])],s=0;s<i.length;s++)i[s]&&r.push(i[s])}else if(a.nodeType||a===window||a===document)r.push(a);else if(a.length>0&&a[0].nodeType)for(s=0;s<a.length;s++)r.push(a[s]);return new e(r)};return e.prototype={addClass:function(e){if("undefined"==typeof e)return this;for(var a=e.split(" "),t=0;t<a.length;t++)for(var r=0;r<this.length;r++)this[r].classList.add(a[t]);return this},removeClass:function(e){for(var a=e.split(" "),t=0;t<a.length;t++)for(var r=0;r<this.length;r++)this[r].classList.remove(a[t]);return this},hasClass:function(e){return this[0]?this[0].classList.contains(e):!1},toggleClass:function(e){for(var a=e.split(" "),t=0;t<a.length;t++)for(var r=0;r<this.length;r++)this[r].classList.toggle(a[t]);return this},attr:function(e,a){if(1===arguments.length&&"string"==typeof e)return this[0]?this[0].getAttribute(e):void 0;for(var t=0;t<this.length;t++)if(2===arguments.length)this[t].setAttribute(e,a);else for(var r in e)this[t][r]=e[r],this[t].setAttribute(r,e[r]);return this},removeAttr:function(e){for(var a=0;a<this.length;a++)this[a].removeAttribute(e);return this},data:function(e,a){if("undefined"==typeof a){if(this[0]){var t=this[0].getAttribute("data-"+e);return t?t:this[0].dom7ElementDataStorage&&e in this[0].dom7ElementDataStorage?this[0].dom7ElementDataStorage[e]:void 0}return void 0}for(var r=0;r<this.length;r++){var s=this[r];s.dom7ElementDataStorage||(s.dom7ElementDataStorage={}),s.dom7ElementDataStorage[e]=a}return this},transform:function(e){for(var a=0;a<this.length;a++){var t=this[a].style;t.webkitTransform=t.MsTransform=t.msTransform=t.MozTransform=t.OTransform=t.transform=e}return this},transition:function(e){"string"!=typeof e&&(e+="ms");for(var a=0;a<this.length;a++){var t=this[a].style;t.webkitTransitionDuration=t.MsTransitionDuration=t.msTransitionDuration=t.MozTransitionDuration=t.OTransitionDuration=t.transitionDuration=e}return this},on:function(e,t,r,s){function i(e){var s=e.target;if(a(s).is(t))r.call(s,e);else for(var i=a(s).parents(),n=0;n<i.length;n++)a(i[n]).is(t)&&r.call(i[n],e)}var n,o,l=e.split(" ");for(n=0;n<this.length;n++)if("function"==typeof t||t===!1)for("function"==typeof t&&(r=arguments[1],s=arguments[2]||!1),o=0;o<l.length;o++)this[n].addEventListener(l[o],r,s);else for(o=0;o<l.length;o++)this[n].dom7LiveListeners||(this[n].dom7LiveListeners=[]),this[n].dom7LiveListeners.push({listener:r,liveListener:i}),this[n].addEventListener(l[o],i,s);return this},off:function(e,a,t,r){for(var s=e.split(" "),i=0;i<s.length;i++)for(var n=0;n<this.length;n++)if("function"==typeof a||a===!1)"function"==typeof a&&(t=arguments[1],r=arguments[2]||!1),this[n].removeEventListener(s[i],t,r);else if(this[n].dom7LiveListeners)for(var o=0;o<this[n].dom7LiveListeners.length;o++)this[n].dom7LiveListeners[o].listener===t&&this[n].removeEventListener(s[i],this[n].dom7LiveListeners[o].liveListener,r);return this},once:function(e,a,t,r){function s(n){t(n),i.off(e,a,s,r)}var i=this;"function"==typeof a&&(a=!1,t=arguments[1],r=arguments[2]),i.on(e,a,s,r)},trigger:function(e,a){for(var t=0;t<this.length;t++){var r;try{r=new window.CustomEvent(e,{detail:a,bubbles:!0,cancelable:!0})}catch(s){r=document.createEvent("Event"),r.initEvent(e,!0,!0),r.detail=a}this[t].dispatchEvent(r)}return this},transitionEnd:function(e){function a(i){if(i.target===this)for(e.call(this,i),t=0;t<r.length;t++)s.off(r[t],a)}var t,r=["webkitTransitionEnd","transitionend","oTransitionEnd","MSTransitionEnd","msTransitionEnd"],s=this;if(e)for(t=0;t<r.length;t++)s.on(r[t],a);return this},width:function(){return this[0]===window?window.innerWidth:this.length>0?parseFloat(this.css("width")):null},outerWidth:function(e){return this.length>0?e?this[0].offsetWidth+parseFloat(this.css("margin-right"))+parseFloat(this.css("margin-left")):this[0].offsetWidth:null},height:function(){return this[0]===window?window.innerHeight:this.length>0?parseFloat(this.css("height")):null},outerHeight:function(e){return this.length>0?e?this[0].offsetHeight+parseFloat(this.css("margin-top"))+parseFloat(this.css("margin-bottom")):this[0].offsetHeight:null},offset:function(){if(this.length>0){var e=this[0],a=e.getBoundingClientRect(),t=document.body,r=e.clientTop||t.clientTop||0,s=e.clientLeft||t.clientLeft||0,i=window.pageYOffset||e.scrollTop,n=window.pageXOffset||e.scrollLeft;return{top:a.top+i-r,left:a.left+n-s}}return null},css:function(e,a){var t;if(1===arguments.length){if("string"!=typeof e){for(t=0;t<this.length;t++)for(var r in e)this[t].style[r]=e[r];return this}if(this[0])return window.getComputedStyle(this[0],null).getPropertyValue(e)}if(2===arguments.length&&"string"==typeof e){for(t=0;t<this.length;t++)this[t].style[e]=a;return this}return this},each:function(e){for(var a=0;a<this.length;a++)e.call(this[a],a,this[a]);return this},html:function(e){if("undefined"==typeof e)return this[0]?this[0].innerHTML:void 0;for(var a=0;a<this.length;a++)this[a].innerHTML=e;return this},is:function(t){if(!this[0])return!1;var r,s;if("string"==typeof t){var i=this[0];if(i===document)return t===document;if(i===window)return t===window;if(i.matches)return i.matches(t);if(i.webkitMatchesSelector)return i.webkitMatchesSelector(t);if(i.mozMatchesSelector)return i.mozMatchesSelector(t);if(i.msMatchesSelector)return i.msMatchesSelector(t);for(r=a(t),s=0;s<r.length;s++)if(r[s]===this[0])return!0;return!1}if(t===document)return this[0]===document;if(t===window)return this[0]===window;if(t.nodeType||t instanceof e){for(r=t.nodeType?[t]:t,s=0;s<r.length;s++)if(r[s]===this[0])return!0;return!1}return!1},index:function(){if(this[0]){for(var e=this[0],a=0;null!==(e=e.previousSibling);)1===e.nodeType&&a++;return a}return void 0},eq:function(a){if("undefined"==typeof a)return this;var t,r=this.length;return a>r-1?new e([]):0>a?(t=r+a,new e(0>t?[]:[this[t]])):new e([this[a]])},append:function(a){var t,r;for(t=0;t<this.length;t++)if("string"==typeof a){var s=document.createElement("div");for(s.innerHTML=a;s.firstChild;)this[t].appendChild(s.firstChild)}else if(a instanceof e)for(r=0;r<a.length;r++)this[t].appendChild(a[r]);else this[t].appendChild(a);return this},prepend:function(a){var t,r;for(t=0;t<this.length;t++)if("string"==typeof a){var s=document.createElement("div");for(s.innerHTML=a,r=s.childNodes.length-1;r>=0;r--)this[t].insertBefore(s.childNodes[r],this[t].childNodes[0])}else if(a instanceof e)for(r=0;r<a.length;r++)this[t].insertBefore(a[r],this[t].childNodes[0]);else this[t].insertBefore(a,this[t].childNodes[0]);return this},insertBefore:function(e){for(var t=a(e),r=0;r<this.length;r++)if(1===t.length)t[0].parentNode.insertBefore(this[r],t[0]);else if(t.length>1)for(var s=0;s<t.length;s++)t[s].parentNode.insertBefore(this[r].cloneNode(!0),t[s])},insertAfter:function(e){for(var t=a(e),r=0;r<this.length;r++)if(1===t.length)t[0].parentNode.insertBefore(this[r],t[0].nextSibling);else if(t.length>1)for(var s=0;s<t.length;s++)t[s].parentNode.insertBefore(this[r].cloneNode(!0),t[s].nextSibling)},next:function(t){return new e(this.length>0?t?this[0].nextElementSibling&&a(this[0].nextElementSibling).is(t)?[this[0].nextElementSibling]:[]:this[0].nextElementSibling?[this[0].nextElementSibling]:[]:[])},nextAll:function(t){var r=[],s=this[0];if(!s)return new e([]);for(;s.nextElementSibling;){var i=s.nextElementSibling;t?a(i).is(t)&&r.push(i):r.push(i),s=i}return new e(r)},prev:function(t){return new e(this.length>0?t?this[0].previousElementSibling&&a(this[0].previousElementSibling).is(t)?[this[0].previousElementSibling]:[]:this[0].previousElementSibling?[this[0].previousElementSibling]:[]:[])},prevAll:function(t){var r=[],s=this[0];if(!s)return new e([]);for(;s.previousElementSibling;){var i=s.previousElementSibling;t?a(i).is(t)&&r.push(i):r.push(i),s=i}return new e(r)},parent:function(e){for(var t=[],r=0;r<this.length;r++)e?a(this[r].parentNode).is(e)&&t.push(this[r].parentNode):t.push(this[r].parentNode);return a(a.unique(t))},parents:function(e){for(var t=[],r=0;r<this.length;r++)for(var s=this[r].parentNode;s;)e?a(s).is(e)&&t.push(s):t.push(s),s=s.parentNode;return a(a.unique(t))},find:function(a){for(var t=[],r=0;r<this.length;r++)for(var s=this[r].querySelectorAll(a),i=0;i<s.length;i++)t.push(s[i]);return new e(t)},children:function(t){for(var r=[],s=0;s<this.length;s++)for(var i=this[s].childNodes,n=0;n<i.length;n++)t?1===i[n].nodeType&&a(i[n]).is(t)&&r.push(i[n]):1===i[n].nodeType&&r.push(i[n]);return new e(a.unique(r))},remove:function(){for(var e=0;e<this.length;e++)this[e].parentNode&&this[e].parentNode.removeChild(this[e]);return this},add:function(){var e,t,r=this;for(e=0;e<arguments.length;e++){var s=a(arguments[e]);for(t=0;t<s.length;t++)r[r.length]=s[t],r.length++}return r}},a.fn=e.prototype,a.unique=function(e){for(var a=[],t=0;t<e.length;t++)-1===a.indexOf(e[t])&&a.push(e[t]);return a},a}()),r=["jQuery","Zepto","Dom7"],s=0;s<r.length;s++)window[r[s]]&&e(window[r[s]]);var i;i="undefined"==typeof t?window.Dom7||window.Zepto||window.jQuery:t,i&&("transitionEnd"in i.fn||(i.fn.transitionEnd=function(e){function a(i){if(i.target===this)for(e.call(this,i),t=0;t<r.length;t++)s.off(r[t],a)}var t,r=["webkitTransitionEnd","transitionend","oTransitionEnd","MSTransitionEnd","msTransitionEnd"],s=this;if(e)for(t=0;t<r.length;t++)s.on(r[t],a);return this}),"transform"in i.fn||(i.fn.transform=function(e){for(var a=0;a<this.length;a++){var t=this[a].style;t.webkitTransform=t.MsTransform=t.msTransform=t.MozTransform=t.OTransform=t.transform=e}return this}),"transition"in i.fn||(i.fn.transition=function(e){"string"!=typeof e&&(e+="ms");for(var a=0;a<this.length;a++){var t=this[a].style;t.webkitTransitionDuration=t.MsTransitionDuration=t.msTransitionDuration=t.MozTransitionDuration=t.OTransitionDuration=t.transitionDuration=e}return this})),window.Swiper=a}(),"undefined"!=typeof module?module.exports=window.Swiper:"function"==typeof define&&define.amd&&define([],function(){"use strict";return window.Swiper});
 //# sourceMappingURL=maps/swiper.min.js.map
 !function(e,i,t){"use strict";function n(){for(var e=[],i="0123456789abcdef",t=0;36>t;t++)e[t]=i.substr(Math.floor(16*Math.random()),1);e[14]="4",e[19]=i.substr(3&e[19]|8,1),e[8]=e[13]=e[18]=e[23]="-";var n=e.join("");return n}function r(e){return{restrict:"E",transclude:!0,scope:{onReady:"&",slidesPerView:"=",slidesPerColumn:"=",spaceBetween:"=",parallax:"=",parallaxTransition:"@",paginationIsActive:"=",paginationClickable:"=",showNavButtons:"=",loop:"=",autoplay:"=",initialSlide:"=",containerCls:"@",paginationCls:"@",slideCls:"@",direction:"@",swiper:"=",overrideParameters:"="},controller:["$scope","$element",function(e,n){this.buildSwiper=function(){var r={slidesPerView:e.slidesPerView||1,slidesPerColumn:e.slidesPerColumn||1,spaceBetween:e.spaceBetween||0,direction:e.direction||"horizontal",loop:e.loop||!1,initialSlide:e.initialSlide||0,showNavButtons:!1};e.autoplay===!0&&(r=i.extend({},r,{autoplay:!0})),e.paginationIsActive===!0&&(r=i.extend({},r,{paginationClickable:e.paginationClickable||!0,pagination:"#paginator-"+e.swiper_uuid})),e.showNavButtons===!0&&(r.nextButton="#nextButton-"+e.swiper_uuid,r.prevButton="#prevButton-"+e.swiper_uuid),e.overrideParameters&&(r=i.extend({},r,e.overrideParameters));{var a;e.containerCls||""}i.isObject(e.swiper)?(e.swiper=new Swiper(n[0].firstChild,r),a=e.swiper):a=new Swiper(n[0].firstChild,r),e.onReady!==t&&e.onReady({swiper:a})}}],link:function(e,t,r){var a=n();e.swiper_uuid=a;var s="paginator-"+a,o="prevButton-"+a,l="nextButton-"+a;i.element(t[0].querySelector(".swiper-pagination")).attr("id",s),i.element(t[0].querySelector(".swiper-button-next")).attr("id",l),i.element(t[0].querySelector(".swiper-button-prev")).attr("id",o)},template:'<div class="swiper-container {{containerCls}}"><div class="parallax-bg" data-swiper-parallax="{{parallaxTransition}}" ng-show="parallax"></div><div class="swiper-wrapper" ng-transclude></div><div class="swiper-pagination {{paginationCls}}"></div><div class="swiper-button-next" ng-show="showNavButtons"></div><div class="swiper-button-prev" ng-show="showNavButtons"></div></div>'}}function a(e){return{restrict:"E",require:"^ksSwiperContainer",transclude:!0,template:"<div ng-transclude></div>",replace:!0,link:function(i,t,n,r){i.$last===!0&&e(function(){r.buildSwiper()},0)}}}i.module("ksSwiper",[]).directive("ksSwiperContainer",r).directive("ksSwiperSlide",a),r.$inject=["$log"],a.$inject=["$timeout"]}(window,angular,void 0);
-angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("dish-cook/dish-cook.html","<div ng-controller=\"dishCookController\">\n  <!--<div class=\"nav-icon left profile-icon\" ng-click=\"toProfile()\"></div>-->\n	<div class=\"title\">Cook</div>\n  <div class=\"nav-icon right food-icon\" ng-click=\"toFood()\"></div>\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n    <div class=\"card-holder\" collection-repeat=\"recipe in recipes\" item-width=\"getCardWidth(recipe, $index)\" item-height=\"getCardHeight(recipe, $index)\">\n      <div class=\"card\">\n        <dish-photo class=\"card-image\" ng-model=\"recipe.photo\"></dish-photo>\n        <dish-input class=\"input-first\" ng-model=\"recipe.name\" placeholder=\"Name\"></dish-input>\n        <dish-input class=\"input-second\" ng-model=\"recipe.ingredients\" placeholder=\"Ingredients\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"recipe.portions\" placeholder=\"Portions\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"recipe.price\" placeholder=\"Price\"></dish-input>\n        <dish-button text=\"Post Meal\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
+angular.module("templates", []).run(["$templateCache", function($templateCache) {$templateCache.put("dish-cook/dish-cook.html","<div ng-controller=\"dishCookController\">\n  <!--<div class=\"nav-icon left profile-icon\" ng-click=\"toProfile()\"></div>-->\n	<div class=\"title\">Cook</div>\n  <div class=\"nav-icon right food-icon\" ng-click=\"toFood()\"></div>\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n    <div class=\"card-holder\" collection-repeat=\"recipe in recipes\" item-width=\"getCardWidth(recipe, $index)\" item-height=\"getCardHeight(recipe, $index)\">\n      <div class=\"card\">\n        {{recipe.photo}}\n        <dish-photo class=\"card-image {{recipe.photo ? \'filled\' : \'empty\'}}\" ng-model=\"recipe.photo\"></dish-photo>\n        <dish-input class=\"input-first\" ng-model=\"recipe.name\" placeholder=\"Name\"></dish-input>\n        <dish-input class=\"input-second\" ng-model=\"recipe.ingredients\" placeholder=\"Ingredients\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"recipe.portions\" placeholder=\"Portions\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"recipe.price\" placeholder=\"Price\"></dish-input>\n        <dish-button class=\" {{ valid(recipe) ? \'active\' : \'inactive\'}}\" text=\"Post Meal\" ng-click=\"cook(recipe)\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
 $templateCache.put("dish-favorites/dish-favorites.html","<div class=\"favorites\" ng-controller=\"dishFavoritesController\">\n	<div class=\"nav-icon left food-icon\" ng-click=\"toFood()\"></div>\n	<div class=\"title\">{{currentUser.profile.username}}</div>\n	<!--<div class=\"nav-icon right cook-icon\" ng-click=\"toCook()\"></div>-->\n  <ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n  	<div collection-repeat=\"favorite in favorites\" item-width=\"getCardWidth(favorite, $index)\" item-height=\"getCardHeight(favorite, $index)\">\n  		<div ng-if=\"$index === 0\" class=\"card-holder profile\">\n  			<ng-include src=\"&apos;dish-profile/dish-profile.html&apos;\"></ng-include>\n  		</div>\n  		<div class=\"card-holder favorite\">\n				<div class=\"card\">\n					<div class=\"card-image\" style=\"background-image:url({{favorite.photo}});\"></div>\n	        <dish-input class=\"input-first\" ng-model=\"favorite.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-second\" ng-model=\"favorite.ingredients\" placeholder=\"Ingredients\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-third half\" ng-model=\"favorite.portions\" placeholder=\"Portions\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-third half\" ng-model=\"favorite.price\" placeholder=\"Price\" readonly=\"true\"></dish-input>\n	        <dish-button text=\"Request Meal\"></dish-button>\n				</div>\n			</div>\n  	</div>\n	</ion-scroll>\n</div>\n");
-$templateCache.put("dish-food/dish-food.html","<div ng-controller=\"dishFoodController\">\n  <div class=\"nav-icon left cook-icon\" ng-click=\"toCook()\"></div>\n	<div class=\"title\">Eat</div>\n  <div class=\"nav-icon right profile-icon\" ng-click=\"toProfile()\"></div>\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n    <div class=\"card-holder food\" collection-repeat=\"food in foods\" item-width=\"getCardWidth(food, $index)\" item-height=\"getCardHeight(food, $index)\">\n      <div class=\"card\">\n      	<div class=\"card-image\" style=\"background-image:url({{food.photo}});\"></div>\n        <dish-input class=\"input-first\" ng-model=\"food.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-second\" ng-model=\"food.ingredients\" placeholder=\"Ingredients\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"food.portions\" placeholder=\"Portions\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"food.price\" placeholder=\"Price\" readonly=\"true\"></dish-input>\n        <dish-button text=\"Buy Meal\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
+$templateCache.put("dish-food/dish-food.html","<div ng-controller=\"dishFoodController\">\n  <div class=\"nav-icon left cook-icon\" ng-click=\"toCook()\"></div>\n	<div class=\"title\">Eat</div>\n  <div class=\"nav-icon right profile-icon\" ng-click=\"toProfile()\"></div>\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n    <div class=\"card-holder meal\" collection-repeat=\"meal in meals\" item-width=\"getCardWidth(meal, $index)\" item-height=\"getCardHeight(meal, $index)\">\n      {{currentUser.profile.$id}}\n      <div class=\"card\">\n      	<div class=\"card-image {{meal.photo ? \'filled\' : \'empty\'}}\" style=\"background-image:url({{meal.photo}});\"></div>\n        <dish-input class=\"input-first\" ng-model=\"meal.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-second\" ng-model=\"meal.ingredients\" placeholder=\"Ingredients\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"meal.portions\" placeholder=\"Portions\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"meal.price\" placeholder=\"Price\" readonly=\"true\"></dish-input>\n        <dish-button text=\"Buy Meal\" ng-click=\"buy()\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
 $templateCache.put("dish-forgot/dish-forgot.html","<div ng-controller=\"dishForgotController\">\n	<form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\">\n	  <div class=\"list list-inset\">\n	    <label class=\"item item-input\">\n	      <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n	    </label>\n	  </div>\n	  <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n	  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n	    Back to Login\n	  </div>\n	</form>\n</div>");
-$templateCache.put("dish-help/dish-help-modal.html","<ion-modal-view class=\"modal help-modal\" ng-controller=\"dishHelpController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n  <div class=\"title\">How Can We Help?</div>\n  <ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n	  <div class=\"card-holder issues\">\n	  	<div class=\"card-holder-title\">Issue With Your Meal</div>\n	  	<div class=\"card\">\n	  		<div class=\"card-image\" style=\"background-image:url({{previousMeal.photo}});\"></div>\n	  		<div class=\"card-metadata\">\n	  			<div class=\"card-date\">Today, 11:29 AM</div>\n	  			<div class=\"card-food\">Pizza</div>\n	  			<div class=\"card-price\">$10.00</div>\n	  		</div>\n	  	</div>\n	  </div>\n	  <div class=\"card-holder other-issues\">\n		  <div class=\"card\">\n		  	<div class=\"dish-input advance\">View Previous Meals</div>\n	  	</div>\n  	</div>\n	  <div class=\"card-holder other\">\n	  	<div class=\"card-holder-title\">Other Topics</div>\n	  	<div class=\"card\">\n	  		<div class=\"dish-input advance\">Account</div>\n	  		<div class=\"dish-input advance\">Payment</div>\n	  		<div class=\"dish-input advance\">How to use Dish</div>\n	  		<div class=\"dish-input advance\">Making Your First Meal</div>\n	  	</div>\n	  </div>\n  </ion-scroll>\n</ion-modal-view>");
-$templateCache.put("dish-home/dish-home.html","<div class=\"home\" ng-controller=\"dishHomeController\">\n	<ks-swiper-container swiper=\"swiper\" on-ready=\"onSwiperReady(swiper)\" class=\"overlays\" initial-slide=\"1\" loop=\"false\" show-nav-buttons=\"false\" slides-per-view=\"1\" pagination-clickable=\"false\" direction=\"vertical\" long-swipes-ms=\"0\">\n    <ks-swiper-slide class=\"swiper-slide overlay\" ng-repeat=\"screen in screens\">\n    	<ng-include src=\"screen.template\"></ng-include>\n    </ks-swiper-slide>\n	</ks-swiper-container>\n</div>");
+$templateCache.put("dish-help/dish-help-modal.html","<ion-modal-view class=\"modal help-modal\" ng-controller=\"dishHelpController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n  <div class=\"title\">How Can We Help?</div>\n  <ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n	  <div class=\"card-holder issues\">\n	  	<div class=\"card-holder-title\">Issue With Your Meal</div>\n	  	<div class=\"card\">\n	  		<div class=\"card-image\" style=\"background-image:url({{previousMeal.photo}});\"></div>\n	  		<div class=\"card-metadata\">\n	  			<div class=\"card-date\">Today, 11:29 AM</div>\n	  			<div class=\"card-food\">Pizza</div>\n	  			<div class=\"card-price\">$10.00</div>\n	  		</div>\n	  	</div>\n	  </div>\n	  <div class=\"card-holder other-issues\">\n		  <div class=\"card\">\n		  	<div class=\"dish-input advance\">View Previous Meals</div>\n	  	</div>\n  	</div>\n	  <div class=\"card-holder other\">\n	  	<div class=\"card-holder-title\">Other Topics</div>\n	  	<div class=\"card\">\n	  		<div class=\"dish-input advance\">Account</div>\n	  		<div class=\"dish-input advance\">Payment</div>\n	  		<div class=\"dish-input advance\">How to use Dish</div>\n	  		<div class=\"dish-input advance\">Making Your First Meal</div>\n	  	</div>\n	  </div>\n  </ion-scroll>\n</ion-modal-view>\n\n<!-- Potential help topics\nAccount:\n	-Update my profile information\n	-Reset my password\n	-My account is suspended\n	-I\'m not receiving emails from Dish\n	-My email or phone number is in use\n	-I can\'t change my email or mobile number\n	-I\'d like to delete my account\n	-I think my account is compromised\n	-I\'d like to know my rating\nPayment:\n	-How can I earn free meals?\n	-Payment Options\n	-Update payment information\n	-Settle an outstanding balance\n	-About authorization holds\n	-Can I use a prepaid card?\n	-I was charged incorrectly\n	-Identify an unknown charge\n	-About recurring charges\n	-How do I tip?\nHow to use Dish\n	-Finding a meal\n	-Requesting a meal\n	-Picking up a meal\n	-Favoriting a meal\n	-Rating a meal\n	-Paying for your meal\n	-Rating a cook\n	-Understanding\n	-Using the app\n	-What cities is Dish available in?\n	-How old must I be to use Dish?\n	-Code of Conduct\nMaking Your First Meal\n	-How do I sell a meal on Dish?\n	-Leaving a meal for pickup\n	-Delivering a meal\n	-How much of a cut does Dish take from my sales?\n	-When does Dish pay me?\n	-Become a verified cook\n	-Rating a customer\n	-Professionalism & Respect\n	-Safety\n	-Emergencies\n-->");
+$templateCache.put("dish-home/dish-home.html","<div id=\"multitask-view\" class=\"home\" ng-controller=\"dishHomeController\">\n</div>");
 $templateCache.put("dish-login/dish-login.html","<div ng-controller=\"dishLoginController\">\n  <form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\">\n    <div class=\"list list-inset\">\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n      </label>\n    </div>\n    <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n    <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n      Signup\n    </div>\n  </form>\n  <div class=\"button button-clear button-light forgotLink\" ng-click=\"toForgot()\">Forgot Password?</div>\n</div>");
 $templateCache.put("dish-payment/dish-payment-modal.html","<ion-modal-view class=\"modal payment-modal\" ng-controller=\"dishPaymentController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\" ng-click=\"payment()\">Payment</div>\n	<ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n  	<div collection-repeat=\"payment in payments\" item-width=\"getCardWidth(payment, $index)\" item-height=\"getCardHeight(payment, $index)\">\n  		<div class=\"card-holder payment {{$index === 0 ? \'first\' : \'\'}}\">\n				<div class=\"card\">\n	        <dish-input ng-model=\"payment.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n	        <dish-input ng-model=\"payment.creditcard\" placeholder=\"Card No.\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"half\" ng-model=\"payment.exp\" placeholder=\"Expiration\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"half\" ng-model=\"payment.ccv\" placeholder=\"CCV\" readonly=\"true\"></dish-input>\n	        <dish-button ng-if=\"payment.type === \'delete\'\" type=\"assertive\" text=\"Delete Credit Card\" ng-click=\"delete()\"></dish-button>\n	        <dish-button ng-if=\"payment.type === \'add\'\" text=\"Add Credit Card\" ng-click=\"add()\"></dish-button>\n				</div>\n			</div>\n  	</div>\n	</ion-scroll>\n</ion-modal-view>");
 $templateCache.put("dish-profile/dish-profile.html","<div class=\"card profile\" ng-controller=\"dishProfileController\">\n	<dish-photo class=\"card-image\" ng-model=\"currentUser.profile.photo\"></dish-photo>\n	<div class=\"card-options\">\n		<div class=\"dish-input\" ng-click=\"openModal(\'transactions\')\">History</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'promotions\')\">Free Meals</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'payment\')\">Payment</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'help\')\">Help</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'settings\')\">Settings</div>\n	</div>\n	<dish-button text=\"Recommend Dish\"></dish-button>\n</div>");
 $templateCache.put("dish-promotions/dish-promotions-modal.html","<ion-modal-view class=\"modal promotions-modal\" ng-controller=\"dishPromotionsController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\">Promotions</div>\n	<ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n  	<div collection-repeat=\"promotion in promotions\" item-width=\"getCardWidth(promotion, $index)\" item-height=\"getCardHeight(promotion, $index)\">\n  		<div class=\"card-holder promotion {{$index === 0 ? \'first\' : \'\'}}\">\n				<div class=\"card\" ng-click=\"promotion.command()\">\n	        <dish-button ng-bind-html=\"promotion.button\"></dish-button>\n	        <div class=\"card-icon icon {{promotion.icon}}\"></div>\n				</div>\n			</div>\n  	</div>\n	</ion-scroll>\n</ion-modal-view>");
-$templateCache.put("dish-settings/dish-settings-modal.html","<ion-modal-view class=\"modal settings\" ng-controller=\"dishSettingsController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\">Settings</div>\n	<dish-button type=\"assertive\" text=\"Logout\" ng-click=\"logout()\"></dish-button>\n</ion-modal-view>");
+$templateCache.put("dish-settings/dish-settings-modal.html","<ion-modal-view class=\"modal settings\" ng-controller=\"dishSettingsController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\">Settings</div>\n	<dish-button type=\"assertive\" text=\"Logout\" ng-click=\"logout()\"></dish-button>\n</ion-modal-view>\n\n<!-- Potential Settings\nUser:\n	-Edit Username\n	-Edit Email\n	-Change Password\n	-Become Verified Cook\nApp:\n	-Toggle GPS\n	-Toggle Notifications\n-->");
 $templateCache.put("dish-signup/dish-signup-modal.html","<ion-modal-view class=\"modal signup\">\n  <dish-slider>\n    <dish-slide template=\"dish-signup/dish-signup.html\"></dish-slide>\n    <dish-slide template=\"dish-login/dish-login.html\"></dish-slide>\n    <dish-slide template=\"dish-forgot/dish-forgot.html\"></dish-slide>\n  </dish-slider>\n  <div class=\"logo\"></div>\n</ion-modal-view>");
 $templateCache.put("dish-signup/dish-signup.html","<div ng-controller=\"dishSignupController\">\n  <form class=\"signupForm\" name=\"signupForm\" novalidate ng-submit=\"signupForm.$valid && signup(signupData.user)\">\n    <div class=\"list list-inset\">\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"signupData.user.username\" placeholder=\"Full Name\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"signupData.user.email\" placeholder=\"Email\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"password\" ng-model=\"signupData.user.password\" placeholder=\"Password\">\n      </label>\n    </div>\n    <button class=\"button button-block form-button\" type=\"submit\">Signup</button>\n    <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n      Login\n    </div>\n  </form>\n</div>");
 $templateCache.put("dish-transactions/dish-transactions-modal.html","<ion-modal-view class=\"modal transactions\" ng-controller=\"dishTransactionsController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\">History</div>\n  <ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n  	<div collection-repeat=\"transaction in transactions\" item-width=\"getCardWidth(transaction, $index)\" item-height=\"getCardHeight(transaction, $index)\">\n  		<div class=\"card-holder transaction\">\n				<div class=\"card\">\n					<div class=\"card-image\" style=\"background-image:url({{transaction.photo}});\"></div>\n	        <dish-input class=\"input-first\" ng-model=\"transaction.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-second\" ng-model=\"transaction.ingredients\" placeholder=\"Ingredients\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-third half\" ng-model=\"transaction.portions\" placeholder=\"Portions\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"input-third half\" ng-model=\"transaction.price\" placeholder=\"Price\" readonly=\"true\"></dish-input>\n	        <dish-button text=\"View Meal\"></dish-button>\n				</div>\n			</div>\n  	</div>\n	</ion-scroll>\n</ion-modal-view>");}]);

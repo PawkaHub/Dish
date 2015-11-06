@@ -19,6 +19,8 @@ function Manipulator(variable, domObject, axis) {
 
     var self = this;
 
+    console.log('domObject', domObject);
+
     // There are three places that a variable gets a value from in here:
     //  1. touch manipulation (need to apply constraint when in violation)
     //  2. animation from velocity.
@@ -57,6 +59,7 @@ function Manipulator(variable, domObject, axis) {
 
     addTouchOrMouseListener(domObject, {
         onTouchStart: function() {
+            //console.log('touch');
             // Kill other manipulators that are doing something to a related variable.
             self._motionContext.stopOthers(self._variable);
             // Start a new edit session.
@@ -87,8 +90,12 @@ Manipulator.prototype._setMotionContext = function(motionContext) {
     // Add a stay to the variable we're going to manipulate.
     this._solver.add(new c.StayConstraint(this._variable, c.Strength.medium, 0));
 }
-Manipulator.prototype.name = function() { return this._name; }
-Manipulator.prototype.variable = function() { return this._variable; }
+Manipulator.prototype.name = function() {
+    return this._name;
+}
+Manipulator.prototype.variable = function() {
+    return this._variable;
+}
 Manipulator.prototype.createMotion = function(x, v) {
     var m = new Friction(0.1); // 0.001
     m.set(x, v);
@@ -111,6 +118,7 @@ Manipulator.prototype._update = function() {
     //  4. Nothing is going on, we shouldn't be editing.
     //
     var self = this;
+
     function beginEdit() {
         if (self._motionState.editing) return;
         self._solver.beginEdit(self._variable, c.Strength.strong);
@@ -260,7 +268,7 @@ Manipulator.prototype._createAnimation = function(velocity) {
 
     this._cancelAnimation('velocityAnimation');
     this._cancelAnimation('constraintAnimation');
-    
+
     this._motionState.velocityAnimation = animation(motion,
         function() {
             self._motionState.velocityAnimationPosition = motion.x();
@@ -314,7 +322,9 @@ Manipulator.prototype.animating = function() {
     if (this._motionState.dragging) return false;
     return !!this._motionState.velocityAnimation || this._motionState.trialAnimation;
 }
-Manipulator.prototype.editing = function() { return this._motionState.editing; }
+Manipulator.prototype.editing = function() {
+    return this._motionState.editing;
+}
 Manipulator.prototype.cancelAnimations = function() {
     this._cancelAnimation('velocityAnimation');
     this._cancelAnimation('constraintAnimation');

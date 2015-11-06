@@ -7,11 +7,9 @@
 			$timeout(function() {
 				if (Auth.signedIn() === false) {
 					$log.log('show shit');
-					dishModalService.open($scope, 'signup');
 				} else {
 					console.log('Auth', Auth.user);
 					$scope.currentUser = Auth.user;
-					dishModalService.close();
 				}
 			});
 		});

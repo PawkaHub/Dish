@@ -1,11 +1,36 @@
-<div class="home" ng-controller="dishHomeController">
-	<div class="card-holder" card-repeat="meal in meals">
-		<div class="card-title">
-			<img class="card-icon" src="img/cards/icons/1.png">
-			Title
-		</div>
-		<div class="card" style="background-image:url(img/food.jpg);">
-			Hello {{meal}}
+<div class="home" ng-controller="dishHomeController as vmCooks">
+	<div class="card-holder" card-repeat="cook in vmCooks.cooks">
+		<div class="card" ng-click="vmCooks.viewCook(cook)">
+			<div class="card-banner">
+				<div class="card-title">{{cook.restaurant}}</div>
+				<div class="card-subtitle">{{cook.username}}</div>
+				<div class="ratings">
+					<div class="rating"></div>
+					<div class="rating"></div>
+					<div class="rating"></div>
+					<div class="rating"></div>
+					<div class="rating"></div>
+				</div>
+			</div>
+			<div class="card-masthead" style="background-image:url(img/food.jpg);"></div>
+			<div class="grid">
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+			</div>
+			<div class="grid">
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+			</div>
+			<!--div class="grid">
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
+			</div-->
+			<div class="card-button">
+				View Cook
+			</div>
 		</div>
 	</div>
 </div>

@@ -51,11 +51,9 @@ angular.module('dish.bootstrap')
 			$timeout(function() {
 				if (Auth.signedIn() === false) {
 					$log.log('show shit');
-					dishModalService.open($scope, 'signup');
 				} else {
 					console.log('Auth', Auth.user);
 					$scope.currentUser = Auth.user;
-					dishModalService.close();
 				}
 			});
 		});
@@ -319,9 +317,21 @@ angular.module('dish.bootstrap')
 (function() {
 	'use strict';
 
-	var DEFAULT_RENDER_BUFFER = 3;
+	var ONE_PX_TRANSPARENT_IMG_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+	var DEFAULT_SCALE = 0.8;
+	var DEFAULT_GROWTH_FACTOR = 0.02;
+	var DEFAULT_CARD_WIDTH = window.innerWidth - 20;
+	var DEFAULT_CARD_HEIGHT = window.innerHeight - 20;
+	var DEFAULT_X_MARGIN = 60;
+	var DEFAULT_Y_MARGIN = 70;
+	// (left) space between apps
+	var DEFAULT_LEFT_GAP = 4;
+	// (right) space after apps are moved
+	var DEFAULT_RIGHT_GAP = DEFAULT_CARD_WIDTH * 0.1;
 
-	function CardRepeatDirective($window, $q) {
+	CardRepeatDirective.$inject = ['$window', '$parse', '$$rAF', '$rootScope', '$log'];
+
+	function CardRepeatDirective($window, $parse, $$rAF, $rootScope, $log) {
 		var invalid;
 		return {
 			restrict: 'A',
@@ -330,12 +340,241 @@ angular.module('dish.bootstrap')
 			link: postLink
 		};
 
-		function postLink(scope, elm, attrs, ctrl) {
-			console.log('dish cards', scope.ngModel);
+		function postLink(scope, element, attr, ctrl, transclude) {
+			var node = element[0];
+			var repeatExpr = attr.cardRepeat;
+			var match = repeatExpr.match(/^\s*([\s\S]+?)\s+in\s+([\s\S]+?)(?:\s+track\s+by\s+([\s\S]+?))?\s*$/);
+			if (!match) {
+				throw new Error("card-repeat expected expression in form of '_item_ in " +
+					"_collection_[ track by _id_]' but got '" + attr.cardRepeat + "'.");
+			}
+			var keyExpr = match[1];
+			var listExpr = match[2];
+			var listGetter = $parse(listExpr);
+			var data = [];
+
+			var cardsLeaving = [];
+			var cardsEntering = [];
+			var cardsShownMap = {};
+			var isLayoutReady = false;
+
+			//Card Motion Settings
+			var context = new MotionContext();
+			var solver = context.solver();
+			var lastCard = null;
+			var cards = [];
+			var CARD_WIDTH = DEFAULT_CARD_WIDTH * DEFAULT_SCALE;
+			var CARD_HEIGHT = DEFAULT_CARD_HEIGHT * DEFAULT_SCALE;
+
+			//Watch the collection for new values
+			scope.$watchCollection(listGetter, function(newValue) {
+				data = newValue || (newValue = []);
+				if (!angular.isArray(newValue)) {
+					throw new Error("card-repeat expected an array for '" + listExpr + "', " +
+						"but got a " + typeof value);
+				}
+				// Wait for this digest to end before refreshing everything.
+				scope.$$postDigest(function() {
+					//$log.log('data', data);
+					RefreshLayout();
+				});
+			});
+
+			function RefreshLayout() {
+				// Create the pool of items for reuse, setting the size to (estimatedItemsOnScreen) * 2,
+				// plus the size of the renderBuffer.
+				if (!isLayoutReady) {
+					//$log.log('RefreshLayout');
+					//var poolSize = Math.max(5, renderBuffer * 3);
+					var poolSize = Math.max(5);
+					//$log.log('poolSize', poolSize);
+					for (var i = 0; i < poolSize; i++) {
+						cards.push(new RepeatCard(i));
+					}
+					// Modify CSS properties to maintain a clear view of the cards
+					for (var i = 0; i < cards.length - 1; i++) {
+						attachObserver(cards[i], cards[i + 1]);
+					};
+
+					//Once we've finished attaching observers and converting our cards into a stack we can manipulate, reverse the stack so that we show the data at the top of the card stack, not the bottom.
+					cards.reverse();
+
+					var handler = new Manipulator(lastCard.x, node.parentNode, 'x');
+					$log.log('handler', handler, node.parentNode);
+					context.addManipulator(handler);
+
+					isLayoutReady = true;
+				}
+				forceRerender(true);
+			}
+
+			function forceRerender() {
+				return render(true);
+			}
+
+			function render(forceRerender) {
+				var card;
+				var i;
+				var currentScope;
+				for (i = 0; i < data.length; i++) {
+					card = cards[i];
+					currentScope = card.scope;
+					currentScope.$index = i;
+					currentScope[keyExpr] = data[i];
+					currentScope.$first = (i === 0);
+					currentScope.$last = (i === (data.length - 1));
+					currentScope.$middle = !(currentScope.$first || currentScope.$last);
+					currentScope.$odd = !(currentScope.$even = (i & 1) === 0);
+
+					//$log.log('card', currentScope);
+
+					cardsEntering.push(card);
+
+					if (scope.$$disconnected) ionic.Utils.reconnectScope(card.scope);
+				}
+
+				if (forceRerender) {
+					var rootScopePhase = $rootScope.$$phase;
+					while (cardsEntering.length) {
+						card = cardsEntering.pop();
+						if (!rootScopePhase) card.scope.$digest();
+					}
+				} else {
+					digestEnteringItems();
+				}
+			}
+
+			function digestEnteringItems() {
+				var card;
+				if (digestEnteringItems.running) return;
+				digestEnteringItems.running = true;
+
+				$$rAF(function process() {
+					var rootScopePhase = $rootScope.$$phase;
+					while (cardsEntering.length) {
+						card = cardsEntering.pop();
+						//$log.log('digest card', card.scope);
+						if (!rootScopePhase) card.scope.$digest();
+					}
+					digestEnteringItems.running = false;
+				});
+			}
+
+			function RepeatCard(i) {
+				var self = this;
+				self.scope = scope.$new();
+				transclude(self.scope, function(clone) {
+					self.element = clone;
+					self.element.data('$$cardRepeatItem', self);
+					// TODO destroy
+					self.node = clone[0];
+
+					self.card = new Box(self.node);
+					var card = self.card;
+					var growthFactor = DEFAULT_GROWTH_FACTOR;
+					var h = CARD_HEIGHT * growthFactor;
+					var w = CARD_WIDTH * growthFactor;
+
+					/*h = CARD_HEIGHT * (growthFactor / 2),
+					w = CARD_WIDTH * growthFactor;*/
+
+					$log.log('card', cards, self, CARD_HEIGHT, h, CARD_WIDTH, w, growthFactor);
+
+					// Create the constraints for the cards
+					card.x = new c.Variable({
+						name: "card-" + i + "-x"
+					});
+					card.right = new c.Variable({
+						name: "card-" + i + "-right"
+					});
+					card.edge = new c.Variable({
+						name: "card-" + i + "-right-edge"
+					});
+					card.y = DEFAULT_Y_MARGIN - h;
+					card.bottom = CARD_HEIGHT + h;
+
+					// App's width
+					solver.add(eq(card.right, c.plus(card.x, CARD_WIDTH + w), medium));
+
+					// App's right gap
+					solver.add(eq(card.edge, c.plus(card.right, DEFAULT_RIGHT_GAP), medium));
+
+					// Pin the first card to 0, and add a motion constraint
+					if (i === 0) {
+						solver.add(eq(card.x, 0, weak, 100));
+						context.addMotionConstraint(new MotionConstraint(card.x, ">=", 0));
+						context.addMotionConstraint(new MotionConstraint(card.x, "<=", DEFAULT_X_MARGIN));
+					} else {
+						// The card mustn't reveal any space between it and the previous card.
+						solver.add(leq(card.x, cards[i - 1].card.edge, medium, 0));
+
+						// Make the card tend toward the left (zero). Use a lower priority than
+						// the first card so the solver will prefer for the first card to be
+						// zero than any of the additional cards.
+						solver.add(eq(card.x, 0, weak, 0));
+
+						// The card must be to the right of the previous card's left edge, plus the left gap
+						solver.add(geq(card.x, c.plus(cards[i - 1].card.x, DEFAULT_LEFT_GAP), medium, 0));
+					}
+
+					context.addBox(card);
+
+					lastCard = card;
+
+					// Batch style setting to lower repaints
+					//self.node.style[ionic.CSS.TRANSFORM] = 'translate3d(-9999px,-9999px,0)';
+					//self.node.style.cssText += ' height: 0px; width: 0px;';
+					//$log.log('self', self, self.scope);
+					ionic.Utils.disconnectScope(self.scope);
+					node.parentNode.appendChild(self.node);
+					self.images = clone[0].getElementsByTagName('img');
+				});
+			}
+
+			function attachObserver(current, next) {
+				var offset = 100;
+				var currentCard = current.card;
+				var nextCard = next.card;
+				var $current = currentCard.element();
+				var $next = nextCard.element();
+				var observer = new MutationObserver(function(mutations) {
+					var mutation = mutations[mutations.length - 1];
+					if (mutation.attributeName === "style") {
+
+						// e.g., translate3d(4px, 64px, 0px)
+						var transform = mutation.target.style.transform,
+							values = transform
+							.replace(/translate3d\(|\s|\)/g, "")
+							.split(","),
+							distance = nextCard.x.value - currentCard.x.value,
+							factor = (distance / offset);
+
+						factor = factor > 1 ? 1 : factor;
+
+						var opacity = factor,
+							blur = "blur(" + ((1 - factor) * 10) + "px)";
+
+						//$log.log('styles', transform, distance, factor, opacity);
+
+						render();
+
+						/*$current.style["-webkit-filter"] = blur;
+						$current.style["-moz-filter"] = blur;
+						$current.style["-o-filter"] = blur;
+						$current.style.filter = blur;*/
+
+						$current.style.opacity = opacity;
+					}
+				});
+
+				observer.observe($next, {
+					attributes: true,
+					childList: false,
+					characterData: false
+				});
+			};
 		}
 	}
-
-	CardRepeatDirective.$inject = ['$window', '$q'];
 
 	angular.module('dish.cards')
 		.directive('cardRepeat', CardRepeatDirective);
@@ -557,6 +796,8 @@ function Manipulator(variable, domObject, axis) {
 
     var self = this;
 
+    console.log('domObject', domObject);
+
     // There are three places that a variable gets a value from in here:
     //  1. touch manipulation (need to apply constraint when in violation)
     //  2. animation from velocity.
@@ -595,6 +836,7 @@ function Manipulator(variable, domObject, axis) {
 
     addTouchOrMouseListener(domObject, {
         onTouchStart: function() {
+            console.log('touch');
             // Kill other manipulators that are doing something to a related variable.
             self._motionContext.stopOthers(self._variable);
             // Start a new edit session.
@@ -625,8 +867,12 @@ Manipulator.prototype._setMotionContext = function(motionContext) {
     // Add a stay to the variable we're going to manipulate.
     this._solver.add(new c.StayConstraint(this._variable, c.Strength.medium, 0));
 }
-Manipulator.prototype.name = function() { return this._name; }
-Manipulator.prototype.variable = function() { return this._variable; }
+Manipulator.prototype.name = function() {
+    return this._name;
+}
+Manipulator.prototype.variable = function() {
+    return this._variable;
+}
 Manipulator.prototype.createMotion = function(x, v) {
     var m = new Friction(0.1); // 0.001
     m.set(x, v);
@@ -649,6 +895,7 @@ Manipulator.prototype._update = function() {
     //  4. Nothing is going on, we shouldn't be editing.
     //
     var self = this;
+
     function beginEdit() {
         if (self._motionState.editing) return;
         self._solver.beginEdit(self._variable, c.Strength.strong);
@@ -798,7 +1045,7 @@ Manipulator.prototype._createAnimation = function(velocity) {
 
     this._cancelAnimation('velocityAnimation');
     this._cancelAnimation('constraintAnimation');
-    
+
     this._motionState.velocityAnimation = animation(motion,
         function() {
             self._motionState.velocityAnimationPosition = motion.x();
@@ -852,14 +1099,15 @@ Manipulator.prototype.animating = function() {
     if (this._motionState.dragging) return false;
     return !!this._motionState.velocityAnimation || this._motionState.trialAnimation;
 }
-Manipulator.prototype.editing = function() { return this._motionState.editing; }
+Manipulator.prototype.editing = function() {
+    return this._motionState.editing;
+}
 Manipulator.prototype.cancelAnimations = function() {
     this._cancelAnimation('velocityAnimation');
     this._cancelAnimation('constraintAnimation');
     this._hitConstraint = null; // XXX: Hacky -- want to prevent starting a new constraint animation in update; just want it to end the edit.
     this._update();
 }
-
 "use strict";
 
 (function() {
@@ -1706,21 +1954,34 @@ var medium = c.Strength.medium;
 var strong = c.Strength.strong;
 var required = c.Strength.required;
 
-var eq  = function(a1, a2, strength, w) {
-  return new c.Equation(a1, a2, strength || weak, w||0);
+var eq = function(a1, a2, strength, w) {
+	return new c.Equation(a1, a2, strength || weak, w || 0);
 };
-var neq = function(a1, a2, a3) { return new c.Inequality(a1, a2, a3); };
-var geq = function(a1, a2, str, w) { return new c.Inequality(a1, c.GEQ, a2, str, w); };
-var leq = function(a1, a2, str, w) { return new c.Inequality(a1, c.LEQ, a2, str, w); };
+var neq = function(a1, a2, a3) {
+	return new c.Inequality(a1, a2, a3);
+};
+var geq = function(a1, a2, str, w) {
+	return new c.Inequality(a1, c.GEQ, a2, str, w);
+};
+var leq = function(a1, a2, str, w) {
+	return new c.Inequality(a1, c.LEQ, a2, str, w);
+};
 
 var stay = function(v, strength, weight) {
-  return new c.StayConstraint(v, strength||weak, weight||0);
+	return new c.StayConstraint(v, strength || weak, weight || 0);
 };
-var weakStay =     function(v, w) { return stay(v, weak,     w||0); };
-var mediumStay =   function(v, w) { return stay(v, medium,   w||0); };
-var strongStay =   function(v, w) { return stay(v, strong,   w||0); };
-var requiredStay = function(v, w) { return stay(v, required, w||0); };
-
+var weakStay = function(v, w) {
+	return stay(v, weak, w || 0);
+};
+var mediumStay = function(v, w) {
+	return stay(v, medium, w || 0);
+};
+var strongStay = function(v, w) {
+	return stay(v, strong, w || 0);
+};
+var requiredStay = function(v, w) {
+	return stay(v, required, w || 0);
+};
 (function() {
 	'use strict';
 
@@ -2847,90 +3108,19 @@ angular.module('dish').factory('Utils', function($ionicLoading, $ionicPopup) {
 	'use strict';
 
 	function DishHomeController($scope, $log, $firebaseArray, FURL, Auth, dishKeyboardService, dishModalService) {
-
-		var url = FURL + '/meals';
+		var vm = this;
+		var url = FURL + '/profile';
 		var ref = new Firebase(url);
-		$scope.meals = $firebaseArray(ref);
+		vm.cooks = $firebaseArray(ref);
 
-		$scope.meals.$loaded().then(function(result) {
-			$log.log('oh');
-			//Initialize Cards
-			var data = [{
-				image: "img/cards/1.jpg",
-				name: "Cool Name",
-				icon: "img/cards/icons/1.png"
-			}, {
-				image: "img/cards/2.jpg",
-				name: "Rock & Roll",
-				icon: "img/cards/icons/2.png"
-			}, {
-				image: "img/cards/3.jpg",
-				name: "Best App",
-				icon: "img/cards/icons/3.png"
-			}, {
-				image: "img/cards/4.jpg",
-				name: "Cool Name",
-				icon: "img/cards/icons/4.png"
-			}, {
-				image: "img/cards/5.jpg",
-				name: "Rock & Roll",
-				icon: "img/cards/icons/5.png"
-			}, {
-				image: "img/cards/6.jpg",
-				name: "Best App",
-				icon: "img/cards/icons/6.png"
-			}, {
-				image: "img/cards/7.jpg",
-				name: "Cool Name",
-				icon: "img/cards/icons/7.png"
-			}];
-			multiTaskView(document.getElementById("multitask-view"), data);
+		vm.cooks.$loaded().then(function(result) {
+			//$log.log('oh', result, $scope.cooks);
 		}).catch(function(error) {
-			console.log('error', error)
+			$log.log('error', error)
 		});
 
-		$scope.currentUser = Auth.user;
-
-		$scope.getCardWidth = function(food, index) {
-			return window.innerWidth;
-		}
-
-		$scope.getCardHeight = function(food, index) {
-			return window.innerHeight;
-		}
-
-		$scope.toCook = function() {
-			$log.log('toCook');
-			$scope.swiper.slideTo(0);
-		}
-
-		$scope.toFood = function() {
-			$log.log('toFood');
-			$scope.swiper.slideTo(1);
-		}
-
-		$scope.toProfile = function() {
-			$log.log('toProfile');
-			$scope.swiper.slideTo(2);
-		}
-
-		$scope.onSwiperReady = function(swiper) {
-			swiper.on('sliderMove', function() {
-				dishKeyboardService.close();
-			});
-		}
-
-		$scope.onScroll = function() {
-			dishKeyboardService.close();
-		}
-
-		$scope.openModal = function(name) {
-			if (!name) return;
-			dishModalService.open($scope, name);
-		}
-
-		$scope.closeModal = function() {
-			dishModalService.close();
+		vm.viewCook = function(cook) {
+			$log.log('view', cook);
 		}
 	}
 
@@ -3536,7 +3726,7 @@ $templateCache.put("dish-favorites/dish-favorites.html","<div class=\"favorites\
 $templateCache.put("dish-food/dish-food.html","<div ng-controller=\"dishFoodController\">\n  <div class=\"nav-icon left cook-icon\" ng-click=\"toCook()\"></div>\n	<div class=\"title\">Eat</div>\n  <div class=\"nav-icon right profile-icon\" ng-click=\"toProfile()\"></div>\n	<ion-scroll class=\"cards\" direction=\"x\" scrollbar-x=\"false\" paging=\"true\" on-scroll=\"onScroll()\">\n    <div class=\"card-holder meal\" collection-repeat=\"meal in meals\" item-width=\"getCardWidth(meal, $index)\" item-height=\"getCardHeight(meal, $index)\">\n      {{currentUser.profile.$id}}\n      <div class=\"card\">\n      	<div class=\"card-image {{meal.photo ? \'filled\' : \'empty\'}}\" style=\"background-image:url({{meal.photo}});\"></div>\n        <dish-input class=\"input-first\" ng-model=\"meal.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-second\" ng-model=\"meal.ingredients\" placeholder=\"Ingredients\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"meal.portions\" placeholder=\"Portions\" readonly=\"true\"></dish-input>\n        <dish-input class=\"input-third half\" ng-model=\"meal.price\" placeholder=\"Price\" readonly=\"true\"></dish-input>\n        <dish-button text=\"Buy Meal\" ng-click=\"buy()\"></dish-button>\n      </div>\n    </div>\n  </ion-scroll>\n</div>");
 $templateCache.put("dish-forgot/dish-forgot.html","<div ng-controller=\"dishForgotController\">\n	<form novalidate class=\"forgotForm\" name=\"forgotForm\" novalidate ng-submit=\"forgotForm.$valid && resetPassword(forgotData.user)\">\n	  <div class=\"list list-inset\">\n	    <label class=\"item item-input\">\n	      <input type=\"text\" ng-model=\"forgotData.user.email\" placeholder=\"Enter Your Email\">\n	    </label>\n	  </div>\n	  <button class=\"button button-block form-button\" type=\"submit\">Recover Password</button>\n	  <div class=\"button button-full button-clear button-light\" ng-click=\"toLogin()\">\n	    Back to Login\n	  </div>\n	</form>\n</div>");
 $templateCache.put("dish-help/dish-help-modal.html","<ion-modal-view class=\"modal help-modal\" ng-controller=\"dishHelpController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n  <div class=\"title\">How Can We Help?</div>\n  <ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n	  <div class=\"card-holder issues\">\n	  	<div class=\"card-holder-title\">Issue With Your Meal</div>\n	  	<div class=\"card\">\n	  		<div class=\"card-image\" style=\"background-image:url({{previousMeal.photo}});\"></div>\n	  		<div class=\"card-metadata\">\n	  			<div class=\"card-date\">Today, 11:29 AM</div>\n	  			<div class=\"card-food\">Pizza</div>\n	  			<div class=\"card-price\">$10.00</div>\n	  		</div>\n	  	</div>\n	  </div>\n	  <div class=\"card-holder other-issues\">\n		  <div class=\"card\">\n		  	<div class=\"dish-input advance\">View Previous Meals</div>\n	  	</div>\n  	</div>\n	  <div class=\"card-holder other\">\n	  	<div class=\"card-holder-title\">Other Topics</div>\n	  	<div class=\"card\">\n	  		<div class=\"dish-input advance\">Account</div>\n	  		<div class=\"dish-input advance\">Payment</div>\n	  		<div class=\"dish-input advance\">How to use Dish</div>\n	  		<div class=\"dish-input advance\">Making Your First Meal</div>\n	  	</div>\n	  </div>\n  </ion-scroll>\n</ion-modal-view>\n\n<!-- Potential help topics\nAccount:\n	-Update my profile information\n	-Reset my password\n	-My account is suspended\n	-I\'m not receiving emails from Dish\n	-My email or phone number is in use\n	-I can\'t change my email or mobile number\n	-I\'d like to delete my account\n	-I think my account is compromised\n	-I\'d like to know my rating\nPayment:\n	-How can I earn free meals?\n	-Payment Options\n	-Update payment information\n	-Settle an outstanding balance\n	-About authorization holds\n	-Can I use a prepaid card?\n	-I was charged incorrectly\n	-Identify an unknown charge\n	-About recurring charges\n	-How do I tip?\nHow to use Dish\n	-Finding a meal\n	-Requesting a meal\n	-Picking up a meal\n	-Favoriting a meal\n	-Rating a meal\n	-Paying for your meal\n	-Rating a cook\n	-Understanding\n	-Using the app\n	-What cities is Dish available in?\n	-How old must I be to use Dish?\n	-Code of Conduct\nMaking Your First Meal\n	-How do I sell a meal on Dish?\n	-Leaving a meal for pickup\n	-Delivering a meal\n	-How much of a cut does Dish take from my sales?\n	-When does Dish pay me?\n	-Become a verified cook\n	-Rating a customer\n	-Professionalism & Respect\n	-Safety\n	-Emergencies\n-->");
-$templateCache.put("dish-home/dish-home.html","<div id=\"multitask-view\" class=\"home\" ng-controller=\"dishHomeController\">\n</div>");
+$templateCache.put("dish-home/dish-home.html","<div class=\"home\" ng-controller=\"dishHomeController as vmCooks\">\n	<div class=\"card-holder\" card-repeat=\"cook in vmCooks.cooks\">\n		<div class=\"card\">\n			<div class=\"card-banner\">\n				<div class=\"card-title\">{{cook.restaurant}}</div>\n				<div class=\"card-subtitle\">{{cook.username}}</div>\n				<div class=\"ratings\">\n					<div class=\"rating\"></div>\n					<div class=\"rating\"></div>\n					<div class=\"rating\"></div>\n					<div class=\"rating\"></div>\n					<div class=\"rating\"></div>\n				</div>\n			</div>\n			<div class=\"card-masthead\" style=\"background-image:url(img/food.jpg);\"></div>\n			<div class=\"grid\">\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n			</div>\n			<div class=\"grid\">\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n			</div>\n			<!--div class=\"grid\">\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n				<div class=\"grid-item\" style=\"background-image:url(img/food.jpg);\"></div>\n			</div-->\n			<div class=\"card-button\" ng-click=\"vmCooks.viewCook(cook)\">\n				View Cook\n			</div>\n		</div>\n	</div>\n</div>");
 $templateCache.put("dish-login/dish-login.html","<div ng-controller=\"dishLoginController\">\n  <form novalidate class=\"loginForm\" name=\"loginForm\" ng-submit=\"loginForm.$valid && login(loginData.user)\">\n    <div class=\"list list-inset\">\n      <label class=\"item item-input\">\n        <input type=\"text\" ng-model=\"loginData.user.email\" placeholder=\"Email\">\n      </label>\n      <label class=\"item item-input\">\n        <input type=\"password\" ng-model=\"loginData.user.password\" placeholder=\"Password\">\n      </label>\n    </div>\n    <button class=\"button button-block form-button\" type=\"submit\">Log in</button>\n    <div class=\"button button-full button-clear button-light\" ng-click=\"toSignup()\">\n      Signup\n    </div>\n  </form>\n  <div class=\"button button-clear button-light forgotLink\" ng-click=\"toForgot()\">Forgot Password?</div>\n</div>");
 $templateCache.put("dish-payment/dish-payment-modal.html","<ion-modal-view class=\"modal payment-modal\" ng-controller=\"dishPaymentController\">\n	<div class=\"nav-icon left close-icon\" ng-click=\"closeModal()\"></div>\n	<div class=\"title\" ng-click=\"payment()\">Payment</div>\n	<ion-scroll class=\"cards\" direction=\"y\" scrollbar-y=\"false\" on-scroll=\"onScroll()\">\n  	<div collection-repeat=\"payment in payments\" item-width=\"getCardWidth(payment, $index)\" item-height=\"getCardHeight(payment, $index)\">\n  		<div class=\"card-holder payment {{$index === 0 ? \'first\' : \'\'}}\">\n				<div class=\"card\">\n	        <dish-input ng-model=\"payment.name\" placeholder=\"Name\" readonly=\"true\"></dish-input>\n	        <dish-input ng-model=\"payment.creditcard\" placeholder=\"Card No.\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"half\" ng-model=\"payment.exp\" placeholder=\"Expiration\" readonly=\"true\"></dish-input>\n	        <dish-input class=\"half\" ng-model=\"payment.ccv\" placeholder=\"CCV\" readonly=\"true\"></dish-input>\n	        <dish-button ng-if=\"payment.type === \'delete\'\" type=\"assertive\" text=\"Delete Credit Card\" ng-click=\"delete()\"></dish-button>\n	        <dish-button ng-if=\"payment.type === \'add\'\" text=\"Add Credit Card\" ng-click=\"add()\"></dish-button>\n				</div>\n			</div>\n  	</div>\n	</ion-scroll>\n</ion-modal-view>");
 $templateCache.put("dish-profile/dish-profile.html","<div class=\"card profile\" ng-controller=\"dishProfileController\">\n	<dish-photo class=\"card-image\" ng-model=\"currentUser.profile.photo\"></dish-photo>\n	<div class=\"card-options\">\n		<div class=\"dish-input\" ng-click=\"openModal(\'transactions\')\">History</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'promotions\')\">Free Meals</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'payment\')\">Payment</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'help\')\">Help</div>\n		<div class=\"dish-input\" ng-click=\"openModal(\'settings\')\">Settings</div>\n	</div>\n	<dish-button text=\"Recommend Dish\"></dish-button>\n</div>");

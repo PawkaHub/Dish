@@ -7998,73 +7998,6 @@ body {
   border: none;
   border-radius: 4px; }
 
-.modal-wrapper .pane {
-  background-color: #f5f5f5; }
-.modal-wrapper .modal {
-  background-color: #f5f5f5; }
-  .modal-wrapper .modal .title {
-    right: 0;
-    left: 0; }
-  .modal-wrapper .modal.payment-modal .title, .modal-wrapper .modal.promotions-modal .title, .modal-wrapper .modal.help-modal .title {
-    right: 0;
-    left: 0;
-    padding-right: 50px;
-    padding-left: 50px;
-    z-index: 9;
-    background-color: rgba(245, 245, 245, 0.8); }
-  .modal-wrapper .modal.payment-modal .cards, .modal-wrapper .modal.promotions-modal .cards, .modal-wrapper .modal.help-modal .cards {
-    top: 0; }
-    .modal-wrapper .modal.payment-modal .cards .card-holder.first, .modal-wrapper .modal.promotions-modal .cards .card-holder.first, .modal-wrapper .modal.help-modal .cards .card-holder.first {
-      margin-top: 50px; }
-  .modal-wrapper .modal.help-modal .title {
-    padding-right: 0;
-    padding-left: 0; }
-  .modal-wrapper .modal.help-modal .cards .card-holder.issues {
-    margin-top: 55px;
-    height: 250px; }
-    .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-image {
-      bottom: 50px;
-      margin: 0; }
-    .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      left: 0;
-      height: 50px; }
-      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-date {
-        position: absolute;
-        top: 8px;
-        left: 15px;
-        font-weight: bold;
-        opacity: 0.75; }
-      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-food {
-        position: absolute;
-        bottom: 5px;
-        left: 15px;
-        font-size: 12px;
-        opacity: 0.6; }
-      .modal-wrapper .modal.help-modal .cards .card-holder.issues .card .card-metadata .card-price {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 16px;
-        opacity: 0.75; }
-  .modal-wrapper .modal.help-modal .cards .card-holder.other-issues {
-    height: 50px;
-    line-height: 50px;
-    top: auto;
-    bottom: 0;
-    margin-bottom: 20px; }
-    .modal-wrapper .modal.help-modal .cards .card-holder.other-issues .card {
-      top: 0;
-      bottom: 0;
-      line-height: inherit; }
-  .modal-wrapper .modal.help-modal .cards .card-holder.other {
-    height: 245px; }
-  .modal-wrapper .modal.help-modal .cards .card-holder .card {
-    top: 30px;
-    color: rgba(0, 0, 0, 0.5); }
-
 .signup {
   position: absolute;
   top: 0;
@@ -8285,181 +8218,6 @@ body {
     left: auto;
     right: -16px; }
 
-.cards {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  top: 45px; }
-  .cards .scroll, .cards .list {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 1;
-    background-color: transparent; }
-  .cards .list {
-    overflow: visible;
-    padding-bottom: 100px; }
-    .cards .list:last-child {
-      margin-bottom: 20px; }
-  .cards .collection-repeat-container {
-    height: 100%; }
-  .cards .card-holder-title {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    text-align: center;
-    margin: 0 auto;
-    color: #000;
-    opacity: 0.5; }
-    .cards .card-holder-title:before, .cards .card-holder-title:after {
-      content: '';
-      position: absolute;
-      top: 10px;
-      width: 70px;
-      height: 1px;
-      background-color: rgba(0, 0, 0, 0.2); }
-    .cards .card-holder-title:before {
-      left: 15px; }
-    .cards .card-holder-title:after {
-      right: 15px; }
-  .cards .card-holder {
-    background-image: url('');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: 50% 50%;
-    width: 100%;
-    height: 100%;
-    position: relative;
-    color: #fff; }
-    .cards .card-holder .card {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      bottom: 15px;
-      left: 15px;
-      margin: 0;
-      padding: 0;
-      border-radius: 5px;
-      overflow: hidden; }
-      .cards .card-holder .card .card-title {
-        position: absolute;
-        right: 0;
-        bottom: 50px;
-        left: 0;
-        text-align: center;
-        height: 40px;
-        line-height: 40px;
-        background-color: #fff;
-        color: #333; }
-      .cards .card-holder .card .card-image {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 200px;
-        left: 0;
-        line-height: 200px;
-        background-color: #333;
-        text-align: center;
-        font-size: 16px;
-        color: rgba(255, 255, 255, 0.5);
-        background-image: url('');
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: 50% 50%;
-        margin-bottom: 25px; }
-        .cards .card-holder .card .card-image.empty:before {
-          content: 'Please add a photo';
-          position: absolute;
-          top: 50%;
-          right: 0;
-          left: 0;
-          margin: 0 auto 0 auto;
-          height: 20px;
-          line-height: 20px;
-          margin-top: -10px; }
-      .cards .card-holder .card .card-icon {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        text-align: center;
-        font-size: 36px;
-        height: 60px;
-        width: 60px;
-        line-height: 60px;
-        background-color: #fff;
-        color: #2980b9;
-        border-radius: 50%;
-        text-align: center;
-        pointer-events: none; }
-        .cards .card-holder .card .card-icon:before {
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          line-height: inherit; }
-      .cards .card-holder .card .dish-input.input-first {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-        position: absolute;
-        bottom: 150px;
-        width: 100%; }
-      .cards .card-holder .card .dish-input.input-second {
-        position: absolute;
-        bottom: 100px;
-        width: 100%; }
-      .cards .card-holder .card .dish-input.input-third {
-        position: absolute;
-        bottom: 50px; }
-        .cards .card-holder .card .dish-input.input-third.half {
-          width: 50%; }
-          .cards .card-holder .card .dish-input.input-third.half:first-of-type {
-            left: 0; }
-          .cards .card-holder .card .dish-input.input-third.half:last-of-type {
-            right: 0; }
-      .cards .card-holder .card .card-options {
-        position: absolute;
-        right: 0;
-        bottom: 50px;
-        left: 0; }
-        .cards .card-holder .card .card-options .dish-input {
-          line-height: 50px;
-          color: #333; }
-    .cards .card-holder.meal .card-image, .cards .card-holder.transaction .card-image, .cards .card-holder.favorite .card-image {
-      margin-bottom: 0; }
-      .cards .card-holder.meal .card-image.empty:before, .cards .card-holder.transaction .card-image.empty:before, .cards .card-holder.favorite .card-image.empty:before {
-        content: 'No photo available'; }
-    .cards .card-holder.profile .card-image {
-      bottom: 300px;
-      margin: 0; }
-    .cards .card-holder.payment {
-      height: 226px; }
-    .cards .card-holder.promotion {
-      height: 120px;
-      background-color: #f5f5f5; }
-      .cards .card-holder.promotion .card {
-        background-color: #2980b9; }
-      .cards .card-holder.promotion .dish-button {
-        position: absolute;
-        top: 0;
-        left: 0;
-        padding-left: 95px;
-        padding-right: 10px;
-        height: inherit;
-        text-align: left;
-        line-height: 1.3;
-        font-size: 18px;
-        font-family: 'visby'; }
-        .cards .card-holder.promotion .dish-button.activated + .card-icon {
-          color: #20638f; }
-      .cards .card-holder.promotion .card-icon.ion-ios-heart {
-        line-height: 64px; }
-
 .dish-photo {
   width: inherit;
   height: inherit; }
@@ -8612,26 +8370,25 @@ body {
   -webkit-transform-origin: 0 0;
   transform-origin: 0 0;
   will-change: transform;
-  background-color: transparent; }
-  .card-holder .card-title {
-    color: white;
-    display: block;
-    letter-spacing: 0.5px;
-    line-height: 24px;
-    padding: 0 0 10px 42px;
-    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2); }
-    .card-holder .card-title .card-icon {
-      height: 24px;
-      margin-right: 5px;
-      vertical-align: middle;
-      width: 24px;
-      background-image: url('');
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: 50% 50%;
-      position: absolute;
-      top: 0;
-      left: 10px; }
+  background-color: transparent;
+  /*.card-title {
+  	color: white;
+		display: block;
+		letter-spacing: 0.5px;
+		line-height: 24px;
+		padding: 0 0 10px 42px;
+		text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+		.card-icon {
+			height: 24px;
+			margin-right: 5px;
+			vertical-align: middle;
+			width: 24px;
+			@include contain('');
+			position: absolute;
+			top: 0;
+			left: 10px;
+		}
+  }*/ }
   .card-holder .card {
     border-radius: 2px;
     height: 100%;
@@ -8641,11 +8398,42 @@ body {
     right: 0;
     bottom: 0;
     left: 0;
-    top: 10px;
-    background-image: url('');
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: 50% 50%;
-    padding: 10px;
-    background-color: #333;
-    color: #fff; }
+    background-color: #f5f5f5;
+    color: #333;
+    pointer-events: auto;
+    z-index: 9; }
+    .card-holder .card .card-banner {
+      text-align: center;
+      padding: 10px; }
+    .card-holder .card .card-masthead {
+      display: flex;
+      height: 150px;
+      margin: 0 10px 10px 10px;
+      border-radius: 5px;
+      background-image: url('');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: 50% 50%; }
+    .card-holder .card .grid {
+      display: flex;
+      padding-left: 5px;
+      padding-right: 5px;
+      height: 15%; }
+      .card-holder .card .grid .grid-item {
+        flex: 1;
+        margin: 0 5px 10px 5px;
+        border-radius: 5px;
+        background-image: url('');
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-position: 50% 50%; }
+    .card-holder .card .card-button {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      background-color: #2980b9;
+      color: #fff; }

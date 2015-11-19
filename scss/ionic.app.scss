@@ -31,6 +31,20 @@ $positive: $brandTint !default;
 	left: 0;
 }
 
+@mixin tap {
+	position: relative;
+	&:after {
+		content: '';
+		position: absolute;
+		top: -10px;
+		right: -10px;
+		bottom: -10px;
+		left: -10px;
+		//background-color: red;
+		//opacity: 0.5;
+	}
+}
+
 @mixin cover ($image) {
 	background-image: url($image);
 	background-size: cover;
@@ -59,7 +73,7 @@ $positive: $brandTint !default;
 		@include full;
 		background-color: black;
 		pointer-events: none;
-		opacity: 0.3;
+		opacity: 0.5;
 	}
 }
 
@@ -348,8 +362,17 @@ $positive: $brandTint !default;
 // Include all of Ionic
 @import "www/lib/ionic/scss/ionic";
 
+//Modules
+@import 'www/components/dish-slider/dish-slider';
+@import 'www/modules/dish-gallery/dish-gallery';
+@import 'www/modules/dish-drawer/dish-drawer';
+
+//Views
+@import 'www/views/dish-preview/dish-preview';
+
 body {
 	background-color: $secondTint;
+	font-family: 'visby-light';
 	/*&:after {
 		content: '';
 		position: absolute;
@@ -465,7 +488,6 @@ body {
 	@include full;
 	z-index: 9;
 	background: black;
-	background-image: linear-gradient(rgba(85, 239, 203, 0.5), rgba(91, 202, 255, 0.5));
 	margin: auto;
   overflow: hidden;
   //@include scrollFix;
@@ -789,6 +811,13 @@ body {
 }
 
 //Dish Cards
+.card-dismiss {
+	@include full;
+	pointer-events: none;
+	&.active {
+		pointer-events: auto;
+	}
+}
 .card-holder {
 	left: 0;
 	pointer-events: none;
@@ -799,24 +828,25 @@ body {
   transform-origin: 0 0;
   will-change: transform;
   background-color: transparent;
-  /*.card-title {
-  	color: white;
-		display: block;
-		letter-spacing: 0.5px;
-		line-height: 24px;
-		padding: 0 0 10px 42px;
-		text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
-		.card-icon {
-			height: 24px;
-			margin-right: 5px;
-			vertical-align: middle;
-			width: 24px;
-			@include contain('');
-			position: absolute;
-			top: 0;
-			left: 10px;
-		}
-  }*/
+  &.active {
+  	.card {
+  		&.loaded {
+	  		-webkit-transform: scale3d(1.1,1.1,1);
+	  		.card-preview {
+	  			opacity: 0;
+	  		}
+	  		.card-content {
+	  			pointer-events: auto;
+	  			.card-banner {
+	  				-webkit-transform: translate3d(0,0,0);
+	  			}
+	  			.card-info {
+		  			-webkit-transform: translate3d(0,0,0);
+	  			}
+	  		}
+  		}
+  	}
+  }
   .card {
   	border-radius: 2px;
 		//box-shadow: 0 3px 7px 0 rgba(0, 0, 0, 0.4);
@@ -827,29 +857,302 @@ body {
 		color: #333;
 		pointer-events: auto;
 		z-index: 9;
+		-webkit-transition: -webkit-transform 300ms ease-in-out, opacity 300ms ease-in-out;
+		opacity: 0;
+		-webkit-transform: scale3d(0,0,0);
 		.card-banner {
 			text-align: center;
 			padding: 10px;
-			.card-title {
+		}
+
+		&.loaded {
+			opacity: 1;
+			-webkit-transform: scale3d(1,1,1);
+			.change {
+				opacity: 1;
+				pointer-events: auto;
+				&.changing {
+					opacity: 0;
+					pointer-events: none;
+				}
 			}
 		}
-		.card-masthead {
+		.card-title {
+			font-size: 20px;
+			text-align: center;
+			margin-bottom: 5px;
+		}
+		.card-subtitle {
+			text-align: center;
+			opacity: 0.75;
+		}
+		.card-content {
+			position: absolute;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			height: 100%;
+			pointer-events: none;
+			.card-banner {
+				background-color: $brandTint;
+				color: #fff;
+				-webkit-transition: all 400ms ease-in-out;
+				-webkit-transform: translate3d(0,-100%,0);
+				padding-bottom: 35px;
+			}
+			.card-info {
+				background-color: #fff;
+				-webkit-transition: all 300ms ease-in-out;
+				-webkit-transform: translate3d(0,100%,0);
+			}
+		}
+		.card-preview {
+			@include full;
+			-webkit-transition: opacity 300ms ease-in-out;
+			opacity: 1;
+			.card-preview-content {
+				@include full;
+				bottom: 40px;
+			}
+		}
+		.masthead {
+			height: 50%;
+			background-color: #111;
+			@include cover('');
+			@include dots;
+		}
+		.masthead-banner {
+			height: 50%;
+			position: absolute;
+			top: 0;
+			right: 0;
+			left: 0;
+			color: #fff;
+			padding: 10px;
+		}
+		.masthead-row {
 			display: flex;
-			height: 150px;
-			margin: 0 10px 10px 10px;
-			border-radius: 5px;
+			height: 25%;
+		}
+		.masthead-col {
+			flex: 1;
+			background-color: #111;
 			@include cover('');
 		}
-		.grid {
+		.change {
+			-webkit-transition: all 500ms ease-in-out;
+			opacity: 0;
+			pointer-events: none;
+		}
+		.card-gallery {
+			height: 200px;
+			background-color: #111;
+		}
+		.card-section-title {
+			height: 30px;
+			line-height: 30px;
+			text-align: center;
+			background-color: #f5f5f5;
+		}
+		.description {
+			padding: 10px;
+			font-size: 14px;
+			line-height: 1.4;
+			height: 100px;
+			text-overflow: ellipsis;
+			overflow: hidden;
+		}
+		.delivery-options {
+      height: 20px;
+	    display: flex;
+	    color: #fff;
+	    max-width: 110px;
+	    width: 100%;
+	    position: absolute;
+	    bottom: 6px;
+	    left: 5px;
+			.delivery-option {
+		    flex: 1 100px;
+		    max-width: 100px;
+		    height: 20px;
+		    line-height: 20px;
+		    text-align: left;
+		    font-size: 14px;
+		    position: relative;
+		    width: 100%;
+		    margin: 0 4px;
+				&:before {
+					font-family: 'ionicons';
+				}
+				&.pickup {
+					margin-right: 0;
+					&:before {
+						content: '\f3bb';
+					}
+				}
+				&.delivery {
+					&:before {
+						content: '\f36f';
+					}
+				}
+				&.dine-in {
+					&:before {
+						content: '\f3aa';
+					}
+				}
+			}
+			.delivery-option-price {
+				font-size: 10px;
+				display: inline-block;
+				position: relative;
+				top: -2px;
+			}
+		}
+		.contact-options {
+	    height: 16px;
+	    display: flex;
+	    color: $brandTint;
+	    max-width: 65px;
+	    position: absolute;
+	    right: 3px;
+	    bottom: 8px;
+	    width: 100%;
+			.contact-option {
+				flex: 1 16px;
+		    max-width: 16px;
+		    height: 16px;
+		    line-height: 16px;
+		    text-align: center;
+		    font-size: 10px;
+		    margin: 0 auto;
+		    background-color: #fff;
+		    border-radius: 50%;
+		    position: relative;
+				@include tap;
+				&:before {
+					font-family: 'ionicons';
+				}
+				&.phone {
+					&:before {
+						content: '\f4b9';
+					}
+				}
+				&.text {
+					&:before {
+						content: '\f3fc';
+					}
+				}
+				&.address {
+					&:before {
+						content: '\f456';
+					}
+				}
+			}
+		}
+		.meals {
+			.meal {
+				position: relative;
+				.meal-name {
+					padding: 10px;
+					text-align: center;
+				}
+				.meal-price {
+					width: 50px;
+			    height: 50px;
+			    line-height: 50px;
+			    text-align: center;
+			    background-color: $brandTint;
+			    color: #fff;
+			    margin: 0 auto;
+			    border-radius: 50%;
+			    margin-bottom: 20px;
+			    font-size: 14px;
+				}
+				.meal-quantity-option {
+					width: 30px;
+					height: 30px;
+					line-height: 30px;
+					text-align: center;
+					position: absolute;
+					bottom: 10px;
+					color: #fff;
+					background-color: $brandTint;
+					border-radius: 50%;
+					&:before {
+						content: '';
+						font-family: 'ionicons';
+					}
+					&.decrease {
+						left: 50%;
+						margin-left: -65px;
+						&:before {
+							content: '\f462';
+						}
+					}
+					&.increase {
+						right: 50%;
+						margin-right: -65px;
+						&:before {
+							content: '\f489';
+						}
+					}
+				}
+				.meal-image {
+					display: flex;
+					height: 140px;
+					border-top: 1px solid rgba(0,0,0,0.05);
+					background-color: #111;
+					@include cover('');
+				}
+				.meal-description {
+					padding: 10px;
+				}
+			}
+		}
+		.reviews {
+			.review {
+				border-bottom: 1px solid rgba(0,0,0,0.1);
+				color: #111;
+				opacity: 0.5;
+				.review-text {
+					font-size: 12px;
+					padding: 0 5px 5px 5px;
+					text-align: center;
+				}
+				.ratings {
+					margin-top: 5px;
+				}
+			}
+		}
+		.see-all {
+			background-color: $brandTint;
+			color: #fff;
+			height: 30px;
+			line-height: 30px;
+			text-align: center;
+		}
+		.ratings {
 			display: flex;
-			padding-left: 5px;
-			padding-right: 5px;
-			height: 15%;
-			.grid-item {
+			max-width: 100px;
+			margin: 0 auto;
+			font-size: 12px;
+			.rating {
 				flex: 1;
-				margin: 0 5px 10px 5px;
-				border-radius: 5px;
-				@include cover('');
+				&:before {
+					font-family: 'ionicons';
+					content: '\f3ae';
+				}
+				&.half {
+					&:before {
+						content: '\f3ad';
+					}
+				}
+				&.full {
+					&:before {
+						content: '\f2fc';
+					}
+				}
 			}
 		}
 		.card-button {
@@ -864,4 +1167,258 @@ body {
 			color: #fff;
 		}
   }
+}
+
+//Icons
+.header {
+	position: absolute;
+	top: 0;
+	right: 0;
+	left: 0;
+	height: 60px;
+	line-height: 60px;
+	.header-icon {
+		height: 60px;
+		line-height: 60px;
+		width: 60px;
+		position: absolute;
+		color: #fff;
+		font-size: 24px;
+		text-align: center;
+		top: 0;
+		&.left {
+			left: 0;
+		}
+		&.right {
+			right: 0;
+		}
+	}
+	.header-title {
+		position: absolute;
+		top: 0;
+		right: 60px;
+		left: 60px;
+		height: 60px;
+		line-height: 60px;
+		color: #fff;
+		text-align: center;
+	}
+	.header-subtitle {
+		position: absolute;
+		top: 32px;
+		right: 60px;
+		left: 60px;
+		height: 40px;
+		line-height: 40px;
+		color: #fff;
+		text-align: center;
+		font-size: 14px;
+		opacity: 0.8;
+	}
+}
+
+//Dish Footer
+.footer-button {
+	height: 60px;
+	line-height: 60px;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-color: transparentize(#fff,0.1);
+	color: #333;
+	text-align: center;
+	text-transform: uppercase;
+	font-size: 16px;
+}
+
+//Cart
+.cart {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 1;
+	height: 200px;
+	background-color: $brandTint;
+	-webkit-transition: -webkit-transform 300ms ease-in-out;
+	-webkit-transform: translate3d(0,200px,0);
+	&.active {
+		-webkit-transform: translate3d(0,140px,0);
+	}
+	.cart-header {
+		text-align: center;
+		height: 60px;
+		line-height: 60px;
+		color: #fff;
+		font-size: 20px;
+	}
+}
+
+//Time Selector
+.time-overlay {
+	@include full;
+	z-index: 999;
+	background-color: transparentize(#000,0.2);
+	color: #fff;
+	-webkit-transition: all 30000ms ease-in-out;
+	-webkit-transform: scale3d(1.3,1.3,1);
+	opacity: 0;
+	pointer-events: none;
+	&.active {
+		-webkit-transform: scale3d(1,1,1);
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
+//Gradients for each hour of the day, courtesy of Jordan Ranson and Peter Bork (http://codepen.io/Bork/pen/wJhEm)
+.hour0 {
+  background: #012459;
+	background: -webkit-linear-gradient(top,  #012459 0%,#001322 100%);
+	background: linear-gradient(to bottom,  #012459 0%,#001322 100%);
+}
+
+.hour1 {
+  background: #003972;
+	background: -webkit-linear-gradient(top,  #003972 0%,#001322 100%);
+	background: linear-gradient(to bottom,  #003972 0%,#001322 100%);
+}
+
+.hour2 {
+  background: #003972;
+	background: -webkit-linear-gradient(top,  #003972 0%,#001322 100%);
+	background: linear-gradient(to bottom,  #003972 0%,#001322 100%);
+}
+
+.hour3 {
+  background: #004372;
+	background: -webkit-linear-gradient(top,  #004372 0%,#00182b 100%);
+	background: linear-gradient(to bottom,  #004372 0%,#00182b 100%);
+}
+
+.hour4 {
+  background: #004372;
+	background: -webkit-linear-gradient(top,  #004372 0%,#011d34 100%);
+	background: linear-gradient(to bottom,  #004372 0%,#011d34 100%);
+}
+
+.hour5 {
+  background: #016792;
+	background: -webkit-linear-gradient(top,  #016792 0%,#00182b 100%);
+	background: linear-gradient(to bottom,  #016792 0%,#00182b 100%);
+}
+
+.hour6 {
+  background: #07729f;
+	background: -webkit-linear-gradient(top,  #07729f 0%,#042c47 100%);
+	background: linear-gradient(to bottom,  #07729f 0%,#042c47 100%);
+}
+
+.hour7 {
+  background: #12a1c0;
+	background: -webkit-linear-gradient(top,  #12a1c0 0%,#07506e 100%);
+	background: linear-gradient(to bottom,  #12a1c0 0%,#07506e 100%);
+}
+
+.hour8 {
+  background: #74d4cc;
+	background: -webkit-linear-gradient(top,  #74d4cc 0%,#1386a6 100%);
+	background: linear-gradient(to bottom,  #74d4cc 0%,#1386a6 100%);
+}
+
+.hour9 {
+  background: #efeebc;
+	background: -webkit-linear-gradient(top,  #efeebc 0%,#61d0cf 100%);
+	background: linear-gradient(to bottom,  #efeebc 0%,#61d0cf 100%);
+}
+
+.hour10 {
+  background: #fee154;
+	background: -webkit-linear-gradient(top,  #fee154 0%,#a3dec6 100%);
+	background: linear-gradient(to bottom,  #fee154 0%,#a3dec6 100%);
+}
+
+.hour11 {
+  background: #fdc352;
+	background: -webkit-linear-gradient(top,  #fdc352 0%,#e8ed92 100%);
+	background: linear-gradient(to bottom,  #fdc352 0%,#e8ed92 100%);
+}
+
+.hour12 {
+  background: #ffac6f;
+	background: -webkit-linear-gradient(top,  #ffac6f 0%,#ffe467 100%);
+	background: linear-gradient(to bottom,  #ffac6f 0%,#ffe467 100%);
+}
+
+.hour13 {
+  background: #fda65a;
+	background: -webkit-linear-gradient(top,  #fda65a 0%,#ffe467 100%);
+	background: linear-gradient(to bottom,  #fda65a 0%,#ffe467 100%);
+}
+
+.hour14 {
+  background: #fd9e58;
+	background: -webkit-linear-gradient(top,  #fd9e58 0%,#ffe467 100%);
+	background: linear-gradient(to bottom,  #fd9e58 0%,#ffe467 100%);
+}
+
+.hour15 {
+  background: #f18448;
+	background: -webkit-linear-gradient(top,  #f18448 0%,#ffd364 100%);
+	background: linear-gradient(to bottom,  #f18448 0%,#ffd364 100%);
+}
+
+.hour16 {
+  background: #f06b7e;
+	background: -webkit-linear-gradient(top,  #f06b7e 0%,#f9a856 100%);
+	background: linear-gradient(to bottom,  #f06b7e 0%,#f9a856 100%);
+}
+
+.hour17 {
+  background: #ca5a92;
+	background: -webkit-linear-gradient(top,  #ca5a92 0%,#f4896b 100%);
+	background: linear-gradient(to bottom,  #ca5a92 0%,#f4896b 100%);
+}
+
+.hour18 {
+  background: #5b2c83;
+	background: -webkit-linear-gradient(top,  #5b2c83 0%,#d1628b 100%);
+	background: linear-gradient(to bottom,  #5b2c83 0%,#d1628b 100%);
+}
+
+.hour19 {
+  background: #371a79;
+	background: -webkit-linear-gradient(top,  #371a79 0%,#713684 100%);
+	background: linear-gradient(to bottom,  #371a79 0%,#713684 100%);
+}
+
+.hour20 {
+  background: #28166b;
+	background: -webkit-linear-gradient(top,  #28166b 0%,#45217c 100%);
+	background: linear-gradient(to bottom,  #28166b 0%,#45217c 100%);
+}
+
+.hour21 {
+  background: #192861;
+	background: -webkit-linear-gradient(top,  #192861 0%,#372074 100%);
+	background: linear-gradient(to bottom,  #192861 0%,#372074 100%);
+}
+
+.hour22 {
+  background: #040b3c;
+	background: -webkit-linear-gradient(top,  #040b3c 0%,#233072 100%);
+	background: linear-gradient(to bottom,  #040b3c 0%,#233072 100%);
+}
+
+.hour23 {
+  background: #040b3c;
+	background: -webkit-linear-gradient(top,  #040b3c 0%,#012459 100%);
+	background: linear-gradient(to bottom,  #040b3c 0%,#012459 100%);
+}
+
+//For Read More Styles
+.more {
+	position: relative;
+	left: -2px;
 }

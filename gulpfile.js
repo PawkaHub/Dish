@@ -12,6 +12,7 @@ var useref = require('gulp-useref');
 
 var paths = {
   sass: ['./scss/**/*.scss'],
+  viewsSass: ['./www/js/**/**/*.scss'],
   templatecache: ['./www/views/**/*.html'],
   ng_annotate: ['./www/js/*.js'],
   useref: ['./www/*.html']
@@ -37,6 +38,7 @@ gulp.task('sass', function(done) {
 
 gulp.task('watch', function() {
   gulp.watch(paths.sass, ['sass']);
+  gulp.watch(paths.viewsSass, ['sass']);
   gulp.watch(paths.templatecache, ['templatecache']);
   gulp.watch(paths.ng_annotate, ['ng_annotate']);
   gulp.watch(paths.useref, ['useref']);

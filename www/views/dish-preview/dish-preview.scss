@@ -1,0 +1,24 @@
+//Dish Preview
+.modal-holder {
+	&.preview-modal {
+		.dish-modal {
+			.modal-button-right {
+				top: 0;
+			}
+			.modal-content-wrapper {
+				top: 0;
+			}
+			.preview {
+				@include full;
+				@include cover('');
+				.scroll-view, .scroll {
+					@include full;
+				}
+				.preview-image {
+					@include full;
+					@include contain('');
+				}
+			}
+		}
+	}
+}

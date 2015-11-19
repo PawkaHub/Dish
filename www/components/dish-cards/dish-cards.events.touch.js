@@ -81,11 +81,26 @@ limitations under the License.
             maxDx: 0
         };
 
+        function shouldDisable() {
+            //Grab the dishCardService from angular and see if it's disabled or not before we determine whether to proceed with the event
+            var inject = angular.element(document.body).injector();
+            var service = inject.get('dishCardsService');
+            var disabled = service.disabled;
+
+            return disabled;
+        }
+
         function touchStart(e) {
+            //Grab the dishCardService from angular and see if it's disabled or not before we determine whether to proceed with the event
+            var disabled = shouldDisable();
+            if (disabled) return;
             if (touchInfo.trackingID != -1) return;
             //console.log('touchStart', e.target);
             var listener = findListener(e.target);
             if (!listener) return;
+            //console.log('touchStart', e, listener, touchInfo);
+
+            //return false;
 
             //console.log('passed');
 
@@ -130,6 +145,9 @@ limitations under the License.
         }
 
         function touchMove(e) {
+            //Grab the dishCardService from angular and see if it's disabled or not before we determine whether to proceed with the event
+            var disabled = shouldDisable();
+            if (disabled) return;
             if (touchInfo.trackingID == -1) return;
             e.preventDefault();
             var delta = findDelta(e);
@@ -154,6 +172,9 @@ limitations under the License.
         }
 
         function touchEnd(e) {
+            //Grab the dishCardService from angular and see if it's disabled or not before we determine whether to proceed with the event
+            var disabled = shouldDisable();
+            if (disabled) return;
             if (touchInfo.trackingID == -1) return;
             e.preventDefault();
             var delta = findDelta(e);

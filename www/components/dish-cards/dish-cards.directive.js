@@ -13,10 +13,11 @@
 	// (right) space after apps are moved
 	var DEFAULT_RIGHT_GAP = DEFAULT_CARD_WIDTH * 0.1;
 
-	CardRepeatDirective.$inject = ['$window', '$parse', '$$rAF', '$rootScope', '$log'];
+	CardRepeatDirective.$inject = ['$log', '$parse', '$$rAF', '$rootScope', 'dishCardsService'];
 
-	function CardRepeatDirective($window, $parse, $$rAF, $rootScope, $log) {
+	function CardRepeatDirective($log, $parse, $$rAF, $rootScope, dishCardsService) {
 		var invalid;
+		var CARD_DISABLED = dishCardsService.disabled;
 		return {
 			restrict: 'A',
 			replace: true,
@@ -50,8 +51,11 @@
 			var CARD_WIDTH = DEFAULT_CARD_WIDTH * DEFAULT_SCALE;
 			var CARD_HEIGHT = DEFAULT_CARD_HEIGHT * DEFAULT_SCALE;
 
+			$log.log('hi', listGetter, listExpr, keyExpr);
+
 			//Watch the collection for new values
 			scope.$watchCollection(listGetter, function(newValue) {
+				//$log.log('cardChanges', newValue);
 				data = newValue || (newValue = []);
 				if (!angular.isArray(newValue)) {
 					throw new Error("card-repeat expected an array for '" + listExpr + "', " +
@@ -114,16 +118,20 @@
 
 					cardsEntering.push(card);
 
-					if (scope.$$disconnected) ionic.Utils.reconnectScope(card.scope);
+					if (currentScope.$$disconnected) {
+						ionic.Utils.reconnectScope(card.scope);
+					}
 				}
 
 				if (forceRerender) {
+					//$log.log('forceRerender', cardsEntering, cardsEntering.length);
 					var rootScopePhase = $rootScope.$$phase;
 					while (cardsEntering.length) {
 						card = cardsEntering.pop();
 						if (!rootScopePhase) card.scope.$digest();
 					}
 				} else {
+					//$log.log('render normal');
 					digestEnteringItems();
 				}
 			}
@@ -132,6 +140,8 @@
 				var card;
 				if (digestEnteringItems.running) return;
 				digestEnteringItems.running = true;
+
+				//$log.log('digestEnteringItems');
 
 				$$rAF(function process() {
 					var rootScopePhase = $rootScope.$$phase;
@@ -162,7 +172,7 @@
 					/*h = CARD_HEIGHT * (growthFactor / 2),
 					w = CARD_WIDTH * growthFactor;*/
 
-					$log.log('card', cards, self, CARD_HEIGHT, h, CARD_WIDTH, w, growthFactor);
+					//$log.log('card', cards, self, CARD_HEIGHT, h, CARD_WIDTH, w, growthFactor);
 
 					// Create the constraints for the cards
 					card.x = new c.Variable({
@@ -222,6 +232,8 @@
 				var $current = currentCard.element();
 				var $next = nextCard.element();
 				var observer = new MutationObserver(function(mutations) {
+					CARD_DISABLED = dishCardsService.disabled;
+					if (CARD_DISABLED) return;
 					var mutation = mutations[mutations.length - 1];
 					if (mutation.attributeName === "style") {
 
@@ -237,6 +249,8 @@
 
 						var opacity = factor,
 							blur = "blur(" + ((1 - factor) * 10) + "px)";
+
+						//$log.log('currentCard', CARD_DISABLED);
 
 						//$log.log('styles', transform, distance, factor, opacity);
 

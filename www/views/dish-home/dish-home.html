@@ -1,36 +1,115 @@
-<div class="home" ng-controller="dishHomeController as vmCooks">
-	<div class="card-holder" card-repeat="cook in vmCooks.cooks">
-		<div class="card" ng-click="vmCooks.viewCook(cook)">
-			<div class="card-banner">
-				<div class="card-title">{{cook.restaurant}}</div>
-				<div class="card-subtitle">{{cook.username}}</div>
-				<div class="ratings">
-					<div class="rating"></div>
-					<div class="rating"></div>
-					<div class="rating"></div>
-					<div class="rating"></div>
-					<div class="rating"></div>
+<dish-drawer side="left">
+	<div class="drawer-dismiss" dish-drawer-close></div>
+  <div class="drawer-content">
+    <div class="drawer-item">Menu Item</div>
+    <div class="drawer-item">Menu Item</div>
+    <div class="drawer-item">Menu Item</div>
+  </div>
+</dish-drawer>
+<div class="home hour{{vmCooks.hour}}" ng-controller="dishHomeController as vmCooks">
+	<div class="card-dismiss {{vmCooks.activeCard ? 'active' : ''}}" ng-click="vmCooks.closeCook()"></div>
+	<div class="header">
+		<div class="header-icon icon ion-navicon left" dish-drawer-open></div>
+		<div class="header-title time" ng-click="vmCooks.selectTime()">{{vmCooks.now}}</div>
+		<div class="header-subtitle location" ng-click="vmCooks.selectLocation()">{{vmCooks.location}}</div>
+		<div class="header-icon icon ion-ios-search right"></div>
+	</div>
+	<div class="card-holder {{vmCooks.cardIsActive(cook) ? 'active' : ''}}" card-repeat="cook in vmCooks.cooks track by $index">
+		<div class="card {{vmCooks.cooksLoaded ? 'loaded' : ''}}">
+			<div class="card-preview" ng-click="vmCooks.viewCook(cook)">
+				<div class="card-preview-content">
+					<div class="masthead" style="background-image:url({{cook.meals[0].image}});"></div>
+					<div class="masthead-banner">
+						<div class="card-title change {{vmCooks.changed(cook,'restaurant') ? 'changing' : ''}}">{{cook.restaurant}}</div>
+						<div class="card-subtitle change {{vmCooks.changed(cook,'username') ? 'changing' : ''}} {{cook.verified ? 'verified' : ''}}">{{cook.username}}</div>
+					</div>
+					<div class="masthead-row">
+						<div class="masthead-col" style="background-image:url({{cook.meals[1].image}});"></div>
+						<div class="masthead-col" style="background-image:url({{cook.meals[2].image}});"></div>
+					</div>
+					<div class="masthead-row">
+						<div class="masthead-col" style="background-image:url({{cook.meals[3].image}});"></div>
+						<div class="masthead-col" style="background-image:url({{cook.meals[4].image}});"></div>
+					</div>
+				</div>
+				<div class="card-button">
+					See Menu
 				</div>
 			</div>
-			<div class="card-masthead" style="background-image:url(img/food.jpg);"></div>
-			<div class="grid">
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-			</div>
-			<div class="grid">
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-			</div>
-			<!--div class="grid">
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-				<div class="grid-item" style="background-image:url(img/food.jpg);"></div>
-			</div-->
-			<div class="card-button">
-				View Cook
-			</div>
+			<ion-content class="card-content" scrollbar-y="false">
+				<div class="card-banner">
+					<div class="card-title change {{vmCooks.changed(cook,'restaurant') ? 'changing' : ''}}">{{cook.restaurant}}</div>
+					<div class="card-subtitle change {{vmCooks.changed(cook,'username') ? 'changing' : ''}} {{cook.verified ? 'verified' : ''}}">{{cook.username}}</div>
+					<div class="ratings">
+						<div class="rating full"></div>
+						<div class="rating full"></div>
+						<div class="rating full"></div>
+						<div class="rating half"></div>
+						<div class="rating"></div>
+					</div>
+					<div class="delivery-options">
+						<div class="delivery-option pickup {{cook.pickup.enabled ? 'active' : ''}}">
+							<div class="delivery-option-price">$0</div>
+						</div>
+						<div class="delivery-option delivery {{cook.delivery.enabled ? 'active' : ''}}">
+							<div class="delivery-option-price">{{cook.delivery.price}}</div>
+						</div>
+						<div class="delivery-option dine-in {{cook.dineIn.enabled ? 'active' : ''}}">
+							<div class="delivery-option-price">{{cook.dineIn.price}}</div>
+						</div>
+					</div>
+					<div class="contact-options">
+						<div class="contact-option phone"></div>
+						<div class="contact-option text"></div>
+						<div class="contact-option address"></div>
+					</div>
+				</div>
+				<div class="card-info">
+					<dish-gallery class="card-gallery" pager="true" ng-model="cook.cookPhotos"></dish-gallery>
+					<div class="description" read-more text="{{cook.description}}" limit="120" ng-click="vmCooks.viewDescription()"></div>
+					<div class="card-section-title">Meals</div>
+					<div class="meals">
+						<div class="meal" ng-repeat="meal in cook.meals">
+							<div class="meal-image" style="background-image:url({{meal.image}});" ng-click="vmCooks.viewMeal(meal)"></div>
+							<div class="meal-name" ng-click="vmCooks.viewMeal(meal)">{{meal.name}}</div>
+							<div class="meal-quantity-option decrease" ng-click="vmCooks.decreaseOrder(meal)"></div>
+							<div class="meal-price">{{meal.price}}</div>
+							<div class="meal-quantity-option increase" ng-click="vmCooks.increaseOrder(meal)"></div>
+							<!--<div class="meal-description">
+								{{meal.description}}
+								<div class="meal-ingredients">
+									<div class="meal-ingredient" ng-repeat="ingredient in meal.ingredients">{{ingredient}}</div>
+								</div>
+							</div>-->
+						</div>
+					</div>
+					<div class="card-section-title">Reviews</div>
+					<div class="reviews">
+						<div class="review" ng-repeat="review in cook.reviews">
+							<div class="ratings">
+								<div class="rating full"></div>
+								<div class="rating full"></div>
+								<div class="rating full"></div>
+								<div class="rating half"></div>
+								<div class="rating"></div>
+							</div>
+							<div class="review-text">{{review.description}}</div>
+						</div>
+						<div class="see-all" ng-click="vmCooks.viewReviews()">See All {{cook.reviews.length}} Reviews</div>
+					</div>
+				</div>
+			</ion-content>
 		</div>
+	</div>
+	<div class="footer-button" ng-click="vmCooks.becomeCook()">
+		Become a Cook
+	</div>
+	<div class="cart {{vmCooks.activeCard ? 'active' : ''}}">
+		<div class="cart-header" ng-click="vmCooks.viewCart()">Cart</div>
+	</div>
+	<div class="time-overlay {{vmCooks.timeActive ? 'active' : ''}}">
+		<ion-content>
+			Hello
+		</ion-content>
 	</div>
 </div>

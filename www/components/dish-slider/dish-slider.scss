@@ -1,0 +1,38 @@
+//Dish Slider
+.dish-slider {
+	@include full;
+	overflow: visible;
+	.slider-slides {
+		overflow: visible;
+	}
+	.bar-header {
+		background-color: $brandTint;
+		border: none;
+		background-image: none;
+		.title, .button {
+			color: #fff;
+		}
+	}
+	.slide {
+		@include full;
+		overflow: visible;
+		&.center {
+			.scroll-content {
+				margin: 0;
+			}
+			.title {
+				font-size: 24px;
+			}
+			.bar-header {
+				background-color: transparent;
+			}
+		}
+	}
+	.slider-pager {
+		.slider-pager-page {
+			color: #fff;
+			margin: 0px 2px;
+			font-size: 12px;
+		}
+	}
+}

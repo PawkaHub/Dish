@@ -1,0 +1,5 @@
+<div class="preview" ng-controller="dishPreviewController as vmPreview" ng-click="vmPreview.resetZoom()">
+	<ion-scroll delegate-handle="dishZoom" zooming="true" direction="xy" scrollbar-x="false" scrollbar-y="false" min-zoom="1">
+	  <div class="preview-image" style="background-image:url({{previewImage}});"></div>
+	 </ion-scroll>
+</div>

@@ -1,0 +1,164 @@
+<!--In The App-->
+The user will be able to set their own location and time for whenever they need to order, however they want to. They say when they want it, where they want it, and we display a list of options near them accordingly. This is shown at the top of the screen with the time.
+
+<!--Begin Cook Detail-->
+<!--Photo Gallery-->
+Kitchen Images Banner
+	-Kitchen Image One (Image of the person)
+	-Kitchen Image Two
+	-Kitchen Image Three
+	-Kitchen Image Four
+	-Kitchen Image Five
+	-> Cook cannot change these images without submitting a request to Dish first for approval, as it is important to the verification process.
+
+<!--Info-->
+Kitchen Name
+Cook Name
+Five Stars Rating
+(COOK ONLY VIEW) Schedule:
+	-Weekdays
+		-Monday
+			-Hours: 9-5pm
+		-Tuesday
+			-Hours: 9-5pm
+		-Wednesday
+			-Hours: 9-5pm
+		-Thursday
+			-Hours: 9-5pm
+		-Friday
+			-Hours: 9-5pm
+		-Saturday
+			-Hours: 9-5pm
+		-Sunday
+			-Hours: 9-5pm
+	-Exceptions (For vacation, etc. so that people can schedule their off times way earlier in the future, which will make it so that their cook card will not display for that time period) i.e. Not available from August 20th to September 1st
+		-Month
+			-Monday
+			-Tuesday
+			-Wednesday
+			-Thursday
+			-Friday
+			-Saturday
+			-Sunday
+Delivery Options
+	-Delivery
+		-> Delivery charge is automatically calculated based on distance from cook to user, but if the user is further away from the cook's desired travel threshold, the delivery option will automatically turn into an icon that shows they are out of range will be displayed instead and the user won't be able to use it.
+		Distance:
+		-> If the user happens to walk within range of the delivery radius, the delivery option will automatically enable.
+		-2 km radius
+			-> Cook can change their radius accordingly to suit their desired delivery service
+		-Delivery charge
+			-> We automatically calculate and charge the delivery fee for them behind the scenes, with different pricing based on distance thresholds
+	-Pickup
+		-Pickup Text
+			-> Cook can add additional pickup text to be displayed when they are approving a order request from a customer. "What do you want the person to see when they come to pick up a meal?"
+		-> Cook can disable this if they so desire, and if it's disabled it shows a disabled icon
+	-Dine-In/Hosting
+		-> Cook can disable this if they so desire
+		-Hosting charge
+			-> The hosting charge is a flat fee that we charge on top, and customers can recommend to tip if they so desire, but due to the hosting charge is not as necessary
+Contact
+	-Phone:
+		-Call
+		-Text
+	-Address:
+		-> Address only shows if the customer has ordered pickup for the food
+
+<!--Metadata-->
+Description
+	-> Cook can change this description to whatever text they want to within 140 chars, and the user can tap on the description to read more if they so desire
+
+<!--Order-->
+List of Meals
+	<ng-repeat review in reviews>
+		-> Any changes that a cook makes to a meal will have to be submitted and approved by Dish before the changes are reflected on their profile.
+		-> Cook can set a meal quantity to show how many meals they currently have available. The quantity available will automatically reset every 24 hours. The quantity available is only shown for on demand meals, so this is a fair requirement to put in place to ensure quality of food.
+		-> Cook will be shown a reminder for a recommended price to set for their meal based on their region.
+		-> Cook can enable/disable a meal as well, if their recipe is not available due to the season.
+		-> Cook can add a meal at any time, but it will not be added to their meal list until it has been approved by Dish.
+		-> Cook can disable a meal and have it not show up on the front end without having to get it approved by Dish.
+		-Meal Name
+			-> Cook can change this to whatever name they want, should be within 50 chars
+		-Meal Image
+			-> Cook can change this to whatever image they want
+		-Meal Order Quantity
+			-> Customer can increment or decrement this field to change how much they have in their cart.
+		-Meal Description
+			-> Cook can change this description to whatever text they want to within 140 chars, and the user can tap on the description to read more if they so desire
+			-Meal Ingredients
+				<ng-repeat ingredient in ingredients>
+				-> Cook can add their own ingredients, and name it accordingly within 50 chars. For now, it won't be tied to a central database of ingredients, but it may be in the future. The cook will be able to search within their own ingredients to add them, however.
+
+<!--Vetting-->
+Reviews
+	<ng-repeat review in reviews>
+		- Reviewer Rating
+		- Reviewer Text
+	-> Whenever the user comes back into the app, they will have to rate their previous meal, and can leave an optional comment if they so desire. That data is then stored in the backend, and can be used to calculate a cook's rating, as well as is displayed on their profile.
+	-> Likewise, the cook can also rate the customer, and that data is stored on the backend for us to keep note of, and is never displayed to the user.
+	-> Whenever a review is made, the userId, Name, and other metadata is stored for later reference be it a cook or a customer, but not displayed on the front end.
+	-> Reviews are sorted on the front end based on their overall rating value
+
+<!--Cart-->
+Cart
+	-> Cart is automatically cleared when the user exits from the cook detail screen.
+	-> Sits at the bottom of the cook detail screen and can be dragged up to view the entire order that the customer has made.
+	<ng-repeat order in orders>
+		-Order Thumbnail
+		-Order Name
+		-Order Quantity
+			-> Customer can increment or decrement this amount
+		-Order Price
+		-Remove Order
+			-> Customer can remove this order item from their order
+	-Order Time
+		-> Customer will see a note for when the order is to be completed "This order is for Saturday, 8:00 PM, November 2, 2015"
+	-Delivery Type
+		-> Customer can pick from any of the available delivery types here, be it pickup, delivery, or dine-in, and the price will be increased if it's dine-in or delivery, and shown to the user appropriately as well. If the cook has set a delivery option to be disabled, the user will not be able to pick that option.
+		-Delivery Information
+			-> If the customer has picked delivery, they will be asked to enter additional delivery information for the driver. (For example: "Call upon arrival", or "Go in the yellow door in the back")
+			-> If the customer has picked pickup, they will have the option to choose to bring their own container, and they won't get charged $1.00 for a Dish container.
+	-Order Button
+		-> When the customer clicks the order button they will see a friendly happy prompt or animation that shows that the order is in queue for approval, and once the order has been approved they'll see a super happy animation that their order has been placed, and they'll be notified to take the next steps appropriately, based on the delivery type they picked.
+		-> If the cook for whatever reason has to reject the order, a popup will be displayed to the customer explaining why the rejection happened, and the customer can choose to report it to Dish, or accept the rejection accordingly and try again later.
+		-> If Delivery Type is Pickup and Cook has approved it, the congratulatory message displayed to the user will include the home address of the cook, and the order time so that they can know when to pick it up, as well as the contact information for the cook so that they can communicate further.
+		-> When the user orders a meal, they can also choose to apply a promo code and get an appropriate discount based on the promotion they have entered.
+		-> If Delivery Type is Dine-In and Cook has approved it, the congratulatory message displayed to the user will include the home address of the cook, and the reservation time that they can arrive at, as well as the contact information for the cook so that they can communicate further. On top of that, they will also be shown some additional Dish guidelines for being a good patron at this person's house. For example:
+			-Don't overstay your welcome (try to keep it to an hour at most)
+			-Be polite, manners matter
+			-Follow the golden rule (Do unto others as you would have done unto yourself)
+		-> If Delivery Type is Delivery and Cook has approved it, the congratulatory message displayed to the user will include the estimated delivery time, as well as the contact information for the cook so that they can communicate further.
+
+<!--Ordering-->
+Ordering
+	-> Once a user has placed an order, the order would show up on the cook's dashboard, and would contain the following information about the customer. The cook could then approve or deny the order accordingly based on the customer's rating, plus include a text reason for why they are denying the customer.
+		- Customer Name
+		- Customer Image
+		- Customer Rating
+		- Order Information
+			- List of Meals
+			- Order Address
+				-> This only shows up if the user has picked delivery
+		- Delivery Type
+			-> If the delivery type is delivery, pickup or dine-in, the popup will also clearly notify the cook of this fact, and the cook can decide whether they want to approve that order based on their comfort levels.
+		- Cost
+		- Reject Reason Text
+	-> If a user ever has an issue with their meal or a bad experience with a cook, they can contact Dish Support and explain the situation, and Dish will reach out with the cook and figure out what happened, and provide appropriate compensation and actions based on what has happened.
+
+<!--End Cook Detail-->
+
+<!--Vetting-->
+Kitchen Inspections: Something to think of for the future
+
+<!--History-->
+-> Customers can view previous cooks they've ordered from, and report them accordingly.
+-> Cooks can view previous customers that have ordered from them, and can report them accordingly.
+
+<!--Thresholds-->
+-> If a cook has a low rating, Dish will give a warning first and encourage them to improve their quality, but if they don't improve the quality and it in fact decreases, they will be booted from the service entirely.
+-> If a customer has a low rating, costs of using the dish platform increase. This is to encourage people to be on their best behaviour, as well as better compensate the cooks for having to deal with problematic customers. If a customer reaches enough of a threshold to be ejected from the Dish service entirely, we will do so accordingly.
+
+<!--Promotions-->
+-> When it comes to promotions, that is something that Dish handles automatically through business logic on the back end, and is triggered on certain milestones throughout a user's time on Dish. Some examples are giving a promotion for joining Dish (free meal), inviting a friend to Dish, making a meal on Dish, and much more.
+-> Promotions can also be used to help remedy bad customer service experiences, whether it was a cook being rude to the customer, their meal not being up to snuff, or even getting sick from eating a meal on Dish, appropriate promotions can be added to each user's account as a way to make amends for what has happened, and help turn a negative experience into a positive one.
+-> This also gives the opportunity for certain charitable or social good mechanisms to be built directly into the app, for example a promotion code that actually charges the user MORE, but the extra money charged actually goes to a charity to feed those in need.
